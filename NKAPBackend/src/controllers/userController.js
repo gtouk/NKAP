@@ -2,95 +2,135 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const User = require('../models/User');
+const nodemailer = require('nodemailer');
+
+
+
 
 //register
+
 exports.register = async (req, res) => {
-    const { name, email, password } = req.body;
-
-    // Validation des données
-    const errors = validationResult(req);  // Vérifie les erreurs de validation envoyées par express-validator
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });  // Si des erreurs existent, retourne un message avec les erreurs
+    const { name, email, phone, password, passwordConfirm } = req.body;
+  
+    // Validation de base pour vérifier que tous les champs sont fournis
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({ message: 'Tous les champs sont requis.' });
     }
-
-    // Vérification des champs obligatoires (même si express-validator fait déjà une partie du travail)
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Tous les champs sont requis.' });
-    }
-
+  
     try {
-        // Hashage du mot de passe
-        const hashedPassword = await bcrypt.hash(password, 10);
+      // Vérification si l'utilisateur existe déjà avec cet email
+      db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+        if (err) {
+          console.error('Erreur lors de la vérification de l\'utilisateur:', err);
+          return res.status(500).json({ message: 'Erreur interne du serveur' });
+        }
+  
+        if (results.length > 0) {
+          return res.status(409).json({ message: 'Email déjà utilisé' });
+        } else if (password !== passwordConfirm) {
+            return res.status(400).json({ message: 'Les mots de passe ne correspondent pas' });
+        }
 
-        // Insertion dans la base de données
+  
+        // Hachage du mot de passe
+        let hashedPassword = await bcrypt.hash(password, 8);
+        console.log(hashedPassword);
+
+        // res.send('test');
+  
+        // Insertion de l'utilisateur dans la base de données
         db.query(
-            'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-            [name, email, hashedPassword],
-            (err, result) => {
-                if (err) {
-                    console.error('Erreur lors de l\'insertion de l\'utilisateur :', err);
-                    return res.status(500).json({ message: 'Erreur interne du serveur', error: err });
-                }
-                res.status(201).json({ message: 'Utilisateur enregistré avec succès!' });
+          'INSERT INTO users SET ?', {name: name, email: email, phone: phone, password: hashedPassword},
+          (err, result) => {
+            if (err) {
+              console.error('Erreur lors de l\'insertion dans la base de données:', err);
+              return res.status(500).json({ message: 'Erreur interne du serveur' });
+            } else {
+                const token = jwt.sign(
+                    { userId: result.insertId, email },
+                    process.env.JWT_SECRET,
+                    // process.env.JWT_SECRET,
+                    // { expiresIn: '1h' }
+                );
+
+                console.log(result);
+                return res.status(201).json({ message: 'Utilisateur créé avec succès', token });
             }
+  
+            // Création du token JWT
+            const token = jwt.sign(
+              { userId: result.insertId, email },
+              process.env.JWT_SECRET,
+              { expiresIn: '1h' }
+            );
+  
+            // Réponse avec le token
+            res.status(201).json({ message: 'Utilisateur créé avec succès!', token });
+          }
         );
+      });
     } catch (error) {
-        console.error('Erreur lors de l\'enregistrement :', error);
-        res.status(500).json({ message: 'Erreur interne du serveur', error });
+      console.error('Erreur lors de l\'enregistrement:', error);
+      res.status(500).json({ message: 'Erreur interne du serveur' });
     }
-};
+  };
 
 // Login
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email et mot de passe requis' });
-    }
+  // Validation des champs nécessaires
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email et mot de passe sont requis' });
+  }
 
-    try {
-        db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-            if (err || !results.length) {
-                return res.status(404).json({ message: 'Utilisateur non trouvé' });
-            }
+  try {
+    // Vérification de l'utilisateur dans la base de données
+    db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+      if (err) {
+        console.error('Erreur lors de la recherche de l\'utilisateur:', err);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+      }
 
-            const user = results[0];
-            const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (results.length === 0) {
+        return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      }
 
-            if (!isPasswordValid) {
-                return res.status(401).json({ message: 'Mot de passe incorrect' });
-            }
+      const user = results[0];
 
-            // Créer le JWT avec une expiration courte
-            const accessToken = jwt.sign(
-                { id: user.id },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }  // Token JWT qui expire après 15 minutes
-            );
+      // Comparaison du mot de passe envoyé avec le mot de passe haché
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
-            // Créer le Refresh Token avec une expiration longue
-            const refreshToken = jwt.sign(
-                { id: user.id },
-                process.env.JWT_SECRET_REFRESH,
-                { expiresIn: '7d' }  // Token de rafraîchissement valide pendant 7 jours
-            );
-
-            // Sauvegarder le refresh token dans la base de données (exemple)
-            db.query('UPDATE users SET refreshToken = ? WHERE id = ?', [refreshToken, user.id], (err, result) => {
-                if (err) {
-                    return res.status(500).json({ message: 'Erreur lors de l\'enregistrement du refresh token' });
-                }
-                res.status(200).json({
-                    accessToken,
-                    refreshToken
-                });
-            });
-        });
-    } catch (error) {
-        console.error('Erreur lors de la connexion', error);
-        res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Mot de passe incorrect' });
+      }
+      const accessToken = generateAccessToken(user);
+      const refreshToken = jwt.sign(user, process.env.JWT_SECRET_REFRESH);
+      // Connexion réussie sans token pour le moment
+      res.status(200).json({ message: 'Connexion réussie' , accessToken: accessToken, refreshToken: refreshToken, name: user.name});
+    });
+  } catch (error) {
+    console.error('Erreur lors de la connexion:', error);
+    res.status(500).json({ message: 'Erreur interne du serveur' });
+  }
 };
+
+function generateAccessToken(user) {
+    return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '15m' });
+}
+
+// Logout
+exports.logout = async (req, res) => {
+  const token = req.body.token;
+  if (!token) {
+    return res.status(401).json({ message: 'Token requis' });
+  }
+
+  blackList.add(token);
+  res.status(200).json({ message: 'Déconnexion réussie' });
+};
+
 
 // Get user profile
 exports.getUserProfile = (req, res) => {
@@ -235,20 +275,26 @@ exports.refreshToken = async (req, res) => {
         // Vérifie si le refresh token est valide
         jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH, (err, user) => {
             if (err) {
+                console.error('Refresh token invalide ou expiré', err);
                 return res.status(403).json({ message: 'Refresh token invalide ou expiré' });
             }
 
             // Vérifie si le refresh token est présent dans la base de données
-            db.query('SELECT * FROM users WHERE id = ? AND refreshToken = ?', [user.id, refreshToken], (err, results) => {
-                if (err || !results.length) {
+            db.query('SELECT * FROM users WHERE id = ? AND refresh_token = ?', [user.id, refreshToken], (err, results) => {
+                if (err) {
+                    console.error('Erreur lors de la vérification du refresh token dans la base de données:', err);
+                    return res.status(500).json({ message: 'Erreur interne du serveur' });
+                }
+
+                if (!results.length) {
                     return res.status(403).json({ message: 'Refresh token non trouvé dans la base de données' });
                 }
 
-                // Créer un nouveau token JWT
+                // Créer un nouveau token JWT avec une expiration de 15 minutes
                 const newAccessToken = jwt.sign(
                     { id: user.id },
                     process.env.JWT_SECRET,
-                    { expiresIn: '15m' }  // Nouveau JWT valable pendant 15 minutes
+                    { expiresIn: '15m' }
                 );
 
                 res.status(200).json({ accessToken: newAccessToken });
@@ -259,5 +305,48 @@ exports.refreshToken = async (req, res) => {
         res.status(500).json({ message: 'Erreur interne du serveur' });
     }
 };
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'votre-email@gmail.com',
+      pass: 'votre-mot-de-passe',
+    },
+  });
+
+exports.sendEmail = async (req, res) => {
+    const { email } = req.body;
+    
+    // Générer un token de réinitialisation
+    const token = crypto.randomBytes(20).toString('hex');
+    
+    // Enregistrez le token dans la base de données (assurez-vous de l'associer à l'utilisateur)
+    // Ici, vous pouvez lier le token à l'utilisateur en base de données avec un délai d'expiration
+    
+    // Envoyer un email à l'utilisateur avec le lien de réinitialisation
+    const resetLink = `http://localhost:3000/reset-password/${token}`;
+  
+    const mailOptions = {
+      from: 'votre-email@gmail.com',
+      to: email,
+      subject: 'Réinitialisation de votre mot de passe',
+      text: `Cliquez sur ce lien pour réinitialiser votre mot de passe: ${resetLink}`,
+    };
+  
+    try {
+      await transporter.sendMail(mailOptions);
+      res.send('Un email de réinitialisation vous a été envoyé.');
+    } catch (error) {
+      res.status(500).send('Une erreur est survenue.');
+    }
+  }
+
+  exports.resetPassword = async (req, res) => {
+    const { token, password } = req.body;
+  
+    // Vérifier si le token est valide, et lier le nouveau mot de passe à l'utilisateur
+    // Mettez à jour le mot de passe dans votre base de données
+    res.send('Votre mot de passe a été réinitialisé avec succès.');
+  }
 
 module.exports = exports;

@@ -5,6 +5,7 @@ const db = require('./src/config/db');
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 const rareLimit = require('express-rate-limit');
+const cors = require('cors');
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -22,6 +23,10 @@ app.use((req, res, next) => {
     req.db = db;
     next();
 });
+
+app.use(cors({
+    origin: 'http://localhost:3001' // Autoriser les requêtes depuis le port 3001 (React)
+}));
 
 // Importer et utiliser les routes utilisateur
 const userRoutes = require('./src/routes/userRoutes');
