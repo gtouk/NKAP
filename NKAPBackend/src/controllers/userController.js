@@ -14,13 +14,13 @@ exports.register = async (req, res) => {
     const { name, email, phone, password, passwordConfirm } = req.body;
   
     // Validation de base pour vérifier que tous les champs sont fournis
-    if (!name || !email || !phone || !password) {
+    if (!name || !email || !phone || !password ) {
       return res.status(400).json({ message: 'Tous les champs sont requis.' });
     }
   
     try {
       // Vérification si l'utilisateur existe déjà avec cet email
-      db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+      db.query('SELECT * FROM users WHERE email = ?', [email, phone], async (err, results) => {
         if (err) {
           console.error('Erreur lors de la vérification de l\'utilisateur:', err);
           return res.status(500).json({ message: 'Erreur interne du serveur' });
@@ -105,10 +105,15 @@ exports.login = async (req, res) => {
       if (!isPasswordValid) {
         return res.status(401).json({ message: 'Mot de passe incorrect' });
       }
-      const accessToken = generateAccessToken(user);
+      const token = generateAccessToken(user);
       const refreshToken = jwt.sign(user, process.env.JWT_SECRET_REFRESH);
       // Connexion réussie sans token pour le moment
-      res.status(200).json({ message: 'Connexion réussie' , accessToken: accessToken, refreshToken: refreshToken, name: user.name});
+      res.status(200).json({ message: 'Connexion réussie' , 
+        token: token, 
+        refreshToken: refreshToken, 
+        id: user.id,
+        name: user.name, 
+        role: user.role});
     });
   } catch (error) {
     console.error('Erreur lors de la connexion:', error);
@@ -117,7 +122,7 @@ exports.login = async (req, res) => {
 };
 
 function generateAccessToken(user) {
-    return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '15m' });
+    return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' });
 }
 
 // Logout
@@ -314,7 +319,7 @@ const transporter = nodemailer.createTransport({
     },
   });
 
-exports.sendEmail = async (req, res) => {
+exports.sendEmailForReset = async (req, res) => {
     const { email } = req.body;
     
     // Générer un token de réinitialisation
@@ -348,5 +353,6 @@ exports.sendEmail = async (req, res) => {
     // Mettez à jour le mot de passe dans votre base de données
     res.send('Votre mot de passe a été réinitialisé avec succès.');
   }
+
 
 module.exports = exports;

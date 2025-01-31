@@ -3,6 +3,7 @@ const userController = require('../controllers/userController');
 const router = express.Router();
 const authenticateJWT = require('../middleware/auth');
 const {body, validationResult} = require('express-validator');
+const db = require('../config/db');
 
 
 router.post('/register',[ 
@@ -19,17 +20,14 @@ router.put('/profile', authenticateJWT, userController.updateUserProfile);
 router.delete('/profile', authenticateJWT, userController.deleteUserProfile);
 router.post('/refresh-token', userController.refreshToken);
 
-router.get('/api/transactions', authenticateJWT, (req, res) => {
-    const userId = req.user.id;  // L'ID de l'utilisateur est extrait du token
 
-    // Requête SQL pour récupérer les transactions de cet utilisateur
-    const query = 'SELECT month, year, amount FROM transactions WHERE user_id = ? ORDER BY year DESC, month DESC';
 
-    db.execute(query, [userId], (err, results) => {
-        if (err) return res.status(500).json({ message: 'Error fetching transactions', error: err });
-        res.json(results);
-    });
-});
+
+//     db.execute(query, [userId], (err, results) => {
+//         if (err) return res.status(500).json({ message: 'Error fetching transactions', error: err });
+//         res.json(results);
+//     });
+// });
 
 router.post('/api/transfer', (req, res) => {
     const { sendingCountry, receivingCountry, amountToSend, amountToReceive, withdrawalMode, recipient, promoCode } = req.body;
@@ -104,6 +102,11 @@ router.post('/api/transfer', (req, res) => {
   
     return amountToSend * exchangeRate;
   };
+
+
+
+
+
   
 
 module.exports = router;
