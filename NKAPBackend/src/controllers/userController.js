@@ -140,18 +140,18 @@ exports.logout = async (req, res) => {
 // Get user profile
 exports.getUserProfile = (req, res) => {
     const userId = req.userId;
+    console.log('User ID:', userId);
+    const query = 'SELECT name, email, phone FROM users WHERE id = ?';
 
-    db.query('SELECT * FROM users WHERE id = ?', [userId], (err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Erreur interne du serveur', error: err });
-        }
-
-        if (result.length > 0) {
-            return res.status(200).json(result[0]);
-        } else {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
+    db.query(query, [userId], (err, result) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Server error');
+      }
+      if (result.length === 0) {
+        return res.status(404).send('User not found');
+      }
+      res.json(result[0]); // Retourner les informations de l'utilisateur
     });
 };
 
@@ -352,6 +352,55 @@ exports.sendEmailForReset = async (req, res) => {
     // Vérifier si le token est valide, et lier le nouveau mot de passe à l'utilisateur
     // Mettez à jour le mot de passe dans votre base de données
     res.send('Votre mot de passe a été réinitialisé avec succès.');
+  }
+
+  exports.updatePassword = async (req, res) => {
+
+        const { oldPassword, newPassword, confirmNewPassword } = req.body;
+        const userId = req.user.id; // Récupération de l'ID de l'utilisateur depuis le token JWT
+
+        // Vérifier que le nouveau mot de passe correspond à la confirmation
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({ message: "Les nouveaux mots de passe ne correspondent pas." });
+        }
+
+        try {
+        // Récupérer l'utilisateur depuis la base de données
+        db.query('SELECT password FROM users WHERE id = ?', [userId], async (err, results) => {
+          if (err) {
+            console.error('Erreur lors de la recherche de l\'utilisateur:', err);
+            return res.status(500).json({ message: 'Erreur interne du serveur' });
+          }
+
+          console.log("userID:", userId);
+
+          if (results.length === 0) {
+            return res.status(404).json({ message: "Utilisateur non trouvé." });
+          }
+
+        // Vérifier l'ancien mot de passe
+        const passwordMatch = await bcrypt.compare(oldPassword, req.user.password);
+        if (!passwordMatch) {
+            return res.status(401).json({ message: "Ancien mot de passe incorrect." });
+        } else if(newPassword!=confirmNewPassword) {
+            return res.status(401).json({ message: 'Les mots de passe ne correspondent pas' });
+        }
+
+        // Hasher le nouveau mot de passe
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        // console.log("newpassword:", hashedPassword);
+
+        if (oldPassword)
+
+        // Mettre à jour le mot de passe en base de données
+        db.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+        res.status(200).json({ message: "Mot de passe mis à jour avec succès !", });
+
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Erreur serveur." });
+    }
   }
 
 

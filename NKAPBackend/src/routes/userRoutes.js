@@ -14,11 +14,13 @@ router.post('/register',[
 ], userController.register);
 
 router.post('/login', userController.login);
-router.get('/:id', authenticateJWT, userController.getUserById);
+// router.get('/:id', authenticateJWT, userController.getUserById);
 router.get('/', authenticateJWT, userController.getAllUsers);
-router.put('/profile', authenticateJWT, userController.updateUserProfile);
-router.delete('/profile', authenticateJWT, userController.deleteUserProfile);
+// router.put('/profile', authenticateJWT, userController.updateUserProfile);
+// router.delete('/profile', authenticateJWT, userController.deleteUserProfile);
 router.post('/refresh-token', userController.refreshToken);
+router.get('/profile', authenticateJWT, userController.getUserProfile);
+router.post('/update-password', authenticateJWT, userController.updatePassword);
 
 
 

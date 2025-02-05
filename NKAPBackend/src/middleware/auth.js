@@ -21,6 +21,7 @@ const authenticateJWT = (req, res, next) => {
             return res.status(403).json({ message: 'Token invalide' });
         }
         req.user = user;
+        req.userId = user.id;
         next();
     });
 };

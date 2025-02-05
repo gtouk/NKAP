@@ -10,5 +10,6 @@ router.post('/transactions',  transactionController.transactions);
 router.get('/get-transactions', authenticateJWT, transactionController.getTransactions);
 
 router.post('/send-email', authenticateJWT, transactionController.sendEmail);
+router.post('/send-mail', transactionController.sendMail);
 
 module.exports = router;
