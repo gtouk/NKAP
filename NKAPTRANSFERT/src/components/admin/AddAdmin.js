@@ -35,7 +35,7 @@ function AddAdmin() {
                     <input
                         type="text"
                         value={name}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setName(e.target.value)}
                         required
                     />
                 </div>
@@ -53,7 +53,7 @@ function AddAdmin() {
                     <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setPhone(e.target.value)}
                         required
                     />
                 </div>

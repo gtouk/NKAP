@@ -27,6 +27,7 @@ function App() {
 
   // Simuler l'authentification après un login réussi
   const handleLoginSuccess = () => {
+    console.log('isAuthenticated:', isAuthenticated); // Vérifiez si l'authentification est définie sur false
     setIsAuthenticated(true);
     const storedUserName = localStorage.getItem('userName');
     if (storedUserName) {

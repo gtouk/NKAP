@@ -33,14 +33,14 @@ const defaultExchangeRate = 1;
 
 function Transfer() {
   const [activeStep, setActiveStep] = useState('envoyer');
-  const [sendingCountry, setSendingCountry] = useState('Canada'); // Fixed sending country to Canada
-  const [receivingCountry, setReceivingCountry] = useState('Cameroun'); // Fixed receiving country to Cameroon
-  const [amountToSend, setAmountToSend] = useState('');
-  const [amountToReceive, setAmountToReceive] = useState('');
-  const [withdrawalMode, setWithdrawalMode] = useState('');
-  const [recipient, setRecipient] = useState('');
-  const [promoCode, setPromoCode] = useState('');
-  const [recipientList, setRecipientList] = useState(['Alice', 'Bob', 'Charlie']); // List of previous recipients
+  // const [sendingCountry, setSendingCountry] = useState('Canada'); // Fixed sending country to Canada
+  // const [receivingCountry, setReceivingCountry] = useState('Cameroun'); // Fixed receiving country to Cameroon
+  // const [amountToSend, setAmountToSend] = useState('');
+  // const [amountToReceive, setAmountToReceive] = useState('');
+  // const [withdrawalMode, setWithdrawalMode] = useState('');
+  // const [recipient, setRecipient] = useState('');
+  // const [promoCode, setPromoCode] = useState('');
+  // const [recipientList, setRecipientList] = useState(['Alice', 'Bob', 'Charlie']); // List of previous recipients
   const [reasonList, setReasonList] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -48,11 +48,11 @@ function Transfer() {
   const [address, setAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmPhoneNumber, setConfirmPhoneNumber] = useState();
-  const [isOther, setIsOther] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // const [isOther, setIsOther] = useState(false);
+  // const [loading, setLoading] = useState(false);
+  // const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { t} = useTranslation();
   const [sendCountry, setSendCountry] = useState('');
   const [receiveCountry, setReceiveCountry] = useState('');
   const [sendAmount, setSendAmount] = useState(0);
@@ -63,8 +63,9 @@ function Transfer() {
   const [errorMessage, setErrorMessage] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
-  const [status, setStatus] = useState('');
-  const [value, setValue] = useState("");
+  const [setStatus] = useState('');
+  
+  // const [value, setValue] = useState("");
   useEffect(() => {
   //get email from local storage
   const storedUserEmail = localStorage.getItem('email');
@@ -78,12 +79,12 @@ function Transfer() {
     setUserName(storedUserName);
     console.log('Nom d\'utilisateur récupéré:', storedUserName);
   }
-}, []);
+}, [userEmail, userName]);
 
-const handleChange = (event) => {
-  console.log("Valeur actuelle: ", event.target.value);  // Vérifier la valeur avant la mise à jour
-  setValue(event.target.value);
-};
+// const handleChange = (event) => {
+//   console.log("Valeur actuelle: ", event.target.value);  // Vérifier la valeur avant la mise à jour
+//   setValue(event.target.value);
+// };
 
 
   const handleSubmit = (event) => {
@@ -112,12 +113,12 @@ const handleChange = (event) => {
 
 
   // Handlers for form fields
-  const handleSendCountryChange = (event) => setSendingCountry(event.target.value);
-  const handleReceiveCountryChange = (event) => setReceivingCountry(event.target.value);
-  const handleAmountToSendChange = (event) => setAmountToSend(event.target.value);
-  const handleAmountToReceiveChange = (event) => setAmountToReceive(event.target.value);
-  const handleWithdrawalModeChange = (event) => setWithdrawalMode(event.target.value);
-  const handleRecipientChange = (event) => setRecipient(event.target.value);
+  // const handleSendCountryChange = (event) => setSendingCountry(event.target.value);
+  // const handleReceiveCountryChange = (event) => setReceivingCountry(event.target.value);
+  // const handleAmountToSendChange = (event) => setAmountToSend(event.target.value);
+  // const handleAmountToReceiveChange = (event) => setAmountToReceive(event.target.value);
+  // const handleWithdrawalModeChange = (event) => setWithdrawalMode(event.target.value);
+  // const handleRecipientChange = (event) => setRecipient(event.target.value);
   const handleFirstNameChange = (event) => setFirstName(event.target.value);
   const handleLastNameChange = (event) => setLastName(event.target.value);
   const handleCityChange = (event) => setCity(event.target.value);
@@ -125,7 +126,7 @@ const handleChange = (event) => {
   const handlePhoneNumberChange = (event) => setPhoneNumber(event.target.value);
   const handleConfirmPhoneNumberChange = (event) => setConfirmPhoneNumber(event.target.value);
   // const handleSendAmountChange = (event) => setSendAmount(event.target.value);
-  const handleIsOtherChange = () => setIsOther(!isOther);
+  // const handleIsOtherChange = () => setIsOther(!isOther);
 
   // Calculate amount to receive based on exchange rate
   useEffect(() => {
@@ -444,7 +445,7 @@ const handleChange = (event) => {
       //send email for confirmation
       const envoyerCourriel = async () => {
         const storedUserEmail = localStorage.getItem('email'); // Email utilisateur connecté
-        const storedUserId = localStorage.getItem('userId'); // ID utilisateur connecté
+        // const storedUserId = localStorage.getItem('userId'); // ID utilisateur connecté
         const storedUserName = localStorage.getItem('userName'); // Nom utilisateur connecté
         let token = localStorage.getItem('token'); // Token JWT
         console.log('le token est:', token);

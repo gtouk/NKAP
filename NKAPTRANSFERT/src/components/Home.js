@@ -77,12 +77,13 @@ function Home() {
     }
 
     //recuperer l'id de l'utilisateur depuis le local storage
-    const userId = localStorage.getItem('userId');
-    if (userId) {
-      setUserId(userId);
-      console.log('ID de l\'utilisateur récupéré:', userId);
+    console.log('ID de l\'utilisateur récupéré:', userId);
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+      console.log('ID de l\'utilisateur récupéré:', storedUserId);
     }
-  }, []);
+  }, [userId]);
 
 
 
@@ -105,11 +106,11 @@ function Home() {
     }
   }, [sendCountry, receiveCountry, sendAmount]);
 
-  // useEffect(() => {
-  //   const calculatedFees = sendAmount * 0.01;
-  //   setFees(calculatedFees);
-  //   setTotalToPay(sendAmount + calculatedFees);
-  // }, [sendAmount]);
+  useEffect(() => {
+    const calculatedFees = sendAmount * 0.01;
+    setFees(calculatedFees);
+    setTotalToPay(sendAmount + calculatedFees);
+  }, [sendAmount]);
 
   const formatCurrency = (amount, currency) => {
     if (!currency) return amount;
@@ -326,7 +327,7 @@ function Home() {
 
               <div className="mt-3">
                 <p onMouseEnter={() => speakText(t('fees') + ' ' + formatCurrency(fees, sendCurrency))} aria-label={t('fees') + ' ' + formatCurrency(fees, sendCurrency)}>
-                  {t('fees')} <span className='frais'>{formatCurrency(fees, sendCurrency)}</span>
+                  {t('fees')} <span className='frais'>{formatCurrency(fees, sendCurrency)} </span>
                 </p>
                 <p
                   onMouseEnter={() => speakText(t('totalToPay') + ' ' + (sendCountry && receiveCountry

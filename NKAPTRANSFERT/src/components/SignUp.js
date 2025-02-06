@@ -51,7 +51,7 @@ function Signup() {
     setError('');
 
     try {
-      const response = await axios.post(`http://${process.env.REACT_NKAP_DEMO_API_URL}/api/users/register`, {
+       await axios.post(`http://${process.env.REACT_NKAP_DEMO_API_URL}/api/users/register`, {
         name,
         email,
         phone,
@@ -59,7 +59,7 @@ function Signup() {
         passwordConfirm: confirmPassword, // Correspond à ton backend
       });
 
-      const { token } = response.data;
+      // const { token } = response.data;
       // localStorage.setItem('authToken', token);
 
       alert('Inscription réussie !');

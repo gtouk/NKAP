@@ -1,7 +1,7 @@
 import { faInfoCircle, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button, Col, Form, InputGroup, Row } from 'react-bootstrap';
 import './Style/Facture.css';
 
@@ -14,49 +14,49 @@ const countryCurrencyMap = {
 function Facture() {
   const [country, setCountry] = useState('');
   const [currency, setCurrency] = useState('');
-  const [receiveCountry, setReceiveCountry] = useState('');
+  // const [receiveCountry, setReceiveCountry] = useState('');
   const [sendAmount, setSendAmount] = useState(0);
-  const [receiveAmount, setReceiveAmount] = useState(0);
-  const [fees, setFees] = useState(0);
-  const [totalToPay, setTotalToPay] = useState(0);
-  const exchangeRate = 450;
+  // const [receiveAmount, setReceiveAmount] = useState(0);
+  // const [fees, setFees] = useState(0);
+  // const [totalToPay, setTotalToPay] = useState(0);
+  // const exchangeRate = 450;
 
-  useEffect(() => {
-    if (country && countryCurrencyMap[country]) {
-      const { currency, receiveCountry } = countryCurrencyMap[country];
-      setCurrency(currency);
-      setReceiveCountry(receiveCountry);
-    } else {
-      setCurrency('');
-      setReceiveCountry('');
-    }
-  }, [country]);
+  // useEffect(() => {
+  //   if (country && countryCurrencyMap[country]) {
+  //     const { currency, receiveCountry } = countryCurrencyMap[country];
+  //     setCurrency(currency);
+  //     setReceiveCountry(receiveCountry);
+  //   } else {
+  //     setCurrency('');
+  //     setReceiveCountry('');
+  //   }
+  // }, [country]);
 
-  useEffect(() => {
-    if (country === 'Canada') {
-      setReceiveAmount(sendAmount * exchangeRate);
-    } else if (country === 'cameroun') {
-      setReceiveAmount(sendAmount / exchangeRate);
-    } else {
-      setReceiveAmount(0);
-    }
-    const calculatedFees = sendAmount * 0.01;
-    setFees(calculatedFees);
-    setTotalToPay(sendAmount + calculatedFees);
-  }, [sendAmount, country]);
+  // useEffect(() => {
+  //   if (country === 'Canada') {
+  //     setReceiveAmount(sendAmount * exchangeRate);
+  //   } else if (country === 'cameroun') {
+  //     setReceiveAmount(sendAmount / exchangeRate);
+  //   } else {
+  //     setReceiveAmount(0);
+  //   }
+  //   const calculatedFees = sendAmount * 0.01;
+  //   setFees(calculatedFees);
+  //   setTotalToPay(sendAmount + calculatedFees);
+  // }, [sendAmount, country]);
 
   const handleCountryChange = (event) => {
     const selectedCountry = event.target.value;
     setCountry(selectedCountry);
   };
 
-  const formatCurrency = (amount, currency) => {
-    if (!currency) return amount;
-    return new Intl.NumberFormat('fr-CA', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  // const formatCurrency = (amount, currency) => {
+  //   if (!currency) return amount;
+  //   return new Intl.NumberFormat('fr-CA', {
+  //     style: 'currency',
+  //     currency: currency,
+  //   }).format(amount);
+  // };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -138,7 +138,8 @@ function Facture() {
             <Col md={6}>
               <Form.Group controlId="formCurrency">
                 <Form.Label className="form-label">Devise *</Form.Label>
-                <Form.Control as="select" value={currency} readOnly required>
+                <Form.Control as="select" value={currency} readOnly required
+                onChange={(e) => setCurrency(e.target.value)}>
                   <option>{currency}</option>
                 </Form.Control>
               </Form.Group>
