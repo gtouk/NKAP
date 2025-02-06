@@ -79,7 +79,7 @@ function Facture() {
         // Afficher un message de succès ou rediriger l'utilisateur, etc.
       })
       .catch((error) => {
-        console.error('Erreur lors de l\'envoi des données :', error);
+        console.error('Erreur lors de l\'envoi des données:', error);
         // Afficher un message d'erreur à l'utilisateur
       });
   };
