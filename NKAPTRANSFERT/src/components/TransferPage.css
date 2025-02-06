@@ -1,0 +1,36 @@
+.custom-navbar {
+    background-color: #f8f9fa;
+  }
+  
+  .custom-brand {
+    font-weight: bold;
+    color: #009688 !important;
+  }
+  
+  .custom-link {
+    color: #000000 !important;
+  }
+  
+  .custom-title {
+    color: #009688;
+    font-size: 2.5rem;
+  }
+  
+  .form-container {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #ffffff;
+  }
+  
+  .custom-footer {
+    background-color: #009688;
+    color: #ffffff;
+    padding: 20px;
+  }
+  
+  .custom-footer p {
+    margin: 0;
+    padding: 5px 0;
+  }
+  

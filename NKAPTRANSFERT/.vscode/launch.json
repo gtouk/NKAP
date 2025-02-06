@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Users/touka/AppData/Local/Temp/43d46d05-aab9-4c8f-b880-c31ab1ceff1b_Operating-System-Class-CSI3531-master.zip.f1b/Operating-System-Class-CSI3531-master/Homework4",
+      "program": "c:/Users/touka/AppData/Local/Temp/43d46d05-aab9-4c8f-b880-c31ab1ceff1b_Operating-System-Class-CSI3531-master.zip.f1b/Operating-System-Class-CSI3531-master/Homework4/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}

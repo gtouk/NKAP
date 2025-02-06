@@ -1,0 +1,38 @@
+.title {
+    color: #16A085;
+  }
+  
+  .form-label {
+    color: #16A085;
+  }
+  
+  .form-control {
+    border-color: #16A085;
+  }
+  
+  .button {
+    background-color: #16A085;
+    border-color: #16A085;
+  }
+  .custom-button {
+    background-color: #007bff; /* Couleur de fond principale */
+    border: 2px solid #0056b3; /* Couleur de bordure */
+    color: #ffffff; /* Couleur du texte */
+    font-size: 1rem; /* Taille du texte */
+    font-weight: bold; /* Poids de la police */
+    border-radius: 0.5rem; /* Coins arrondis */
+    padding: 0.75rem 1.5rem; /* Espacement intérieur */
+    transition: all 0.3s ease; /* Effet de transition pour l'animation */
+  }
+  
+  .custom-button:hover {
+    background-color: #0056b3; /* Couleur de fond au survol */
+    border-color: #004080; /* Couleur de bordure au survol */
+    color: #e0e0e0; /* Couleur du texte au survol */
+  }
+  
+  .custom-button:focus {
+    outline: none; /* Enlève la bordure de focus */
+    box-shadow: 0 0 0 3px rgba(38, 143, 255, 0.5); /* Ombre portée au focus */
+  }
+  

@@ -1,0 +1,73 @@
+digraph semantic_network {
+  // Définition des pages
+  Accueil [label="Accueil"];
+  Transfer [label="Transfert"];
+  Facture [label="Facture"];
+  Contact [label="Nous Joindre"];
+  Profil [label="Profil"];
+
+  // Définition des composants de chaque page
+  AccueilForm [label="Formulaire Accueil"];
+  EstimateTransfer [label="Estimation de Transfert"];
+  Fees [label="Frais"];
+  TotalToPay [label="Total à Payer"];
+  ExchangeRate [label="Taux de Change"];
+
+  TransferForm [label="Formulaire de Transfert"];
+  TransferDetails [label="Détails de Transfert"];
+  TransferValidation [label="Validation des Champs"];
+
+  FactureDetails [label="Détails de Facture"];
+  FactureHistory [label="Historique des Factures"];
+
+  ContactForm [label="Formulaire de Contact"];
+  ContactInfo [label="Informations de Contact"];
+
+  ProfilInfo [label="Informations Personnelles"];
+  ProfilEdit [label="Modification du Profil"];
+
+  // Définition des relations entre les pages
+  Accueil -> Transfer [label="Lien vers Transfert"];
+  Accueil -> Facture [label="Lien vers Facture"];
+  Accueil -> Contact [label="Lien vers Contact"];
+  Accueil -> Profil [label="Lien vers Profil"];
+
+  Transfer -> Facture [label="Peut conduire à Facture"];
+  Transfer -> Contact [label="Peut conduire à Contact"];
+  Transfer -> Profil [label="Peut conduire à Profil"];
+
+  Facture -> Profil [label="Peut conduire à Profil"];
+  Facture -> Contact [label="Peut conduire à Contact"];
+
+  Contact -> Profil [label="Peut conduire à Profil"];
+
+  // Relations entre les composants de la page Accueil
+  Accueil -> AccueilForm;
+  AccueilForm -> EstimateTransfer;
+  EstimateTransfer -> Fees;
+  EstimateTransfer -> TotalToPay;
+  EstimateTransfer -> ExchangeRate;
+
+  // Relations entre les composants de la page Transfert
+  Transfer -> TransferForm;
+  TransferForm -> TransferDetails;
+  TransferForm -> TransferValidation;
+
+  // Relations entre les composants de la page Facture
+  Facture -> FactureDetails;
+  Facture -> FactureHistory;
+
+  // Relations entre les composants de la page Contact
+  Contact -> ContactForm;
+  Contact -> ContactInfo;
+
+  // Relations entre les composants de la page Profil
+  Profil -> ProfilInfo;
+  Profil -> ProfilEdit;
+
+  // Liens entre les composants de différentes pages
+  Transfer -> AccueilForm [label="Utilise les informations d'Accueil"];
+  Facture -> TransferDetails [label="Peut utiliser les détails de Transfert"];
+  Contact -> ContactForm [label="Utilise les informations de Contact"];
+  Profil -> ProfilInfo [label="Affiche les informations du Profil"];
+}
