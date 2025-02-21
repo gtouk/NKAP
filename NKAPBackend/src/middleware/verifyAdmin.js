@@ -1,19 +1,15 @@
-function verifyAdmin(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(403).json({ message: 'Accès non autorisé' });
+export function isSuperAdmin(req, res, next) {
+    if (req.user.role !== 'superAdmin') {
+        return res.status(403).json({ message: 'Accès refusé. Seuls les superAdmins peuvent effectuer cette action.' });
     }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        db.query('SELECT * FROM admins WHERE email = ?', [decoded.email], (err, results) => {
-            if (err || results.length === 0) {
-                return res.status(403).json({ message: 'Accès réservé aux administrateurs' });
-            }
-            req.user = decoded;
-            next();
-        });
-    } catch (err) {
-        return res.status(403).json({ message: 'Jeton invalide ou expiré' });
-    }
+    next();
 }
+
+export function isAdmin(req, res, next) {
+    if (req.user.role !== 'admin' && req.user.role !== 'superAdmin') {
+        return res.status(403).json({ message: 'Accès refusé. Seuls les admins peuvent effectuer cette action.' });
+    }
+    next();
+}
+
+export default { isSuperAdmin, isAdmin };

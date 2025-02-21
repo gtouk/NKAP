@@ -3,7 +3,10 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState } from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Account from './components/Account';
-import AddAdmin from './components/admin/AddAdmin';
+import AdminInterface from './components/admin/AdminInterface';
+import CreateAdmin from './components/admin/CreateAdmin';
+import CreateUser from './components/admin/CreateUser';
+import GetUsers from './components/admin/GetUsers';
 import Facture from './components/Facture';
 import ForgotPassword from './components/ForgotPassword';
 import Home from './components/Home';
@@ -22,15 +25,19 @@ import Transfer from './components/Transfer';
 import { AuthProvider } from './contexts/AuthContext';
 
 
+
 function App() {
+  // eslint-disable-next-line
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Simuler l'authentification après un login réussi
+  // Simulate authentication after successful login
+
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
-    const storedUserName = localStorage.getItem('userName');
+    const storedUserName = localStorage.getItem('userFirstName');
     if (storedUserName) {
-      console.log('Nom d\'utilisateur après connexion:', storedUserName); // Vérifiez si le nom est récupéré
+      console.log('Nom d\'utilisateur après connexion:', storedUserName); // Check if the name is retrieved
+
     }
   };
   
@@ -38,16 +45,17 @@ function App() {
 
 
   return (
-
+    
     <Router>      
     <AuthProvider>
       <Layout>
         <Routes>
+          <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess}/>} />
           <Route path="/mot-de-passe-oublie" component={ForgotPassword} />
           <Route path="/reset-password/:token" component={ResetPassword} />
-          <Route path="/add-admin" element={<AddAdmin />} />
+          {/* <Route path="/add-admin" element={<AddAdmin />} /> */}
           
           
           {/* Regrouper toutes les routes protégées sous PrivateRoute */}
@@ -60,6 +68,10 @@ function App() {
             <Route path="/recipients" element={<Recipients />} />
             <Route path="/account" element={<Account />} />
             <Route path="/refer-a-friend" element={<ReferAFriend />} />
+            <Route path='/adminInterface' element={<AdminInterface/>}/>
+            <Route path='/createAdmin' element={<CreateAdmin/>}/>
+            <Route path='/createUser' element={<CreateUser/>}/>
+            <Route path='/getUsers' element={<GetUsers/>}/>
           </Route>
 
           {/* Route pour l'inscription */}

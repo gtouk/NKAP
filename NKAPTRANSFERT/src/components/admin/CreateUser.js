@@ -1,30 +1,12 @@
 import axios from 'axios';
 import React, { useState } from 'react';
-import { Button, Col, Container, Form, Row } from 'react-bootstrap';
+import { Alert, Button, Col, Container, Form, Row } from 'react-bootstrap';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
-import { useNavigate } from 'react-router-dom'; // Pour la navigation
-import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
-const SignupContainer = styled.div`
-  .form-group {
-    margin-bottom: 1rem;
-  }
-  .form-label {
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-  }
-  .btn-primary {
-    background-color: #16A085;
-    border-color: #16A085;
-  }
-  .btn-primary:hover {
-    background-color: #13856f;
-    border-color: #13856f;
-  }
-`;
 
-function Signup() {
+const CreateUser = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -38,13 +20,17 @@ function Signup() {
   const [phone, setPhone] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  // eslint-disable-next-line
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [showAlert, setShowAlert] = useState(false);
+  const [message, setMessage] = useState('');
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!firstName || !lastName || !email ||!gender ||!birthDate || !country || !street ||!city || !postalCode || !password || !confirmPassword || !phone) {
+    if (!firstName || lastName || !email || !gender || !birthDate || !country || !street || !city || !postalCode || !password || !confirmPassword || !phone) {
       setError('Tous les champs sont requis.');
       return;
     }
@@ -58,7 +44,7 @@ function Signup() {
     setError('');
 
     try {
-       await axios.post('http://localhost:3000/api/users/register', {
+      await axios.post('http://localhost:3000/api/users/register', {
         firstName,
         lastName,
         email,
@@ -70,31 +56,20 @@ function Signup() {
         postalCode,
         phone,
         password,
-        confirmPassword, // Correspond à ton backend
+        passwordConfirm: confirmPassword, // Correspond à ton backend
       });
-      console.log({
-        firstName,
-        lastName,
-        email,
-        gender,
-        birthDate,
-        country,
-        street,
-        city,
-        postalCode,
-        phone,
-        password,
-        confirmPassword
-      });
-      
 
-      // const { token } = response.data;
+      //   const { token } = response.data;
       // localStorage.setItem('authToken', token);
 
-      alert('Inscription réussie !');
-      navigate('/'); // Redirige vers la page d'accueil
+      //   alert('Creation d\'utilisateur réussie !');
+      setMessage('Utilisateur créé avec succès.');
+      setShowAlert(true);
+      navigate('/adminInterface'); // Redirige vers la page d'accueil
     } catch (err) {
-      console.error('Erreur lors de l\'inscription:', err);
+      console.error('Erreur lors de la création de l\'utilisateur:', error);
+      setMessage('Une erreur est survenue lors de la création de l\'utilisateur.');
+      setShowAlert(true);
 
       if (err.response) {
         // Gestion des erreurs backend
@@ -109,13 +84,12 @@ function Signup() {
   };
 
   return (
-    <SignupContainer>
-      <Container className="mt-5">
-        <Row className="justify-content-center">
-          <Col md={6}>
-            <h2 className="display-4 heading">Inscription</h2>
-            <Form onSubmit={handleSubmit}>
-              <Form.Group controlId="formFirstName" className="form-group">
+    <Container className="mt-5">
+      <Row className="justify-content-center">
+        <Col md={6}>
+          <h2 className="display-4 heading">Entrez données utilisateur</h2>
+          <Form onSubmit={handleSubmit}>
+          <Form.Group controlId="formFirstName" className="form-group">
                 <Form.Label className="form-label">Nom</Form.Label>
                 <Form.Control
                   type="text"
@@ -150,13 +124,12 @@ function Signup() {
 
               {/* Country */}
               <Form.Group controlId="formCountry" className="form-group">
-                <Form.Label className="form-label">Pays de Residence</Form.Label>
+                <Form.Label className="form-label">Date de naissance</Form.Label>
                 <Form.Control
                   type="text"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   required
-                  readOnly
                 />
               </Form.Group>
 
@@ -256,24 +229,25 @@ function Signup() {
                   required
                 />
               </Form.Group>
+            {error && <p className="text-danger">{error}</p>}
 
-              {error && <p className="text-danger">{error}</p>}
 
-              <Button type="submit" variant="primary" className="mt-3" disabled={loading}>
-                {loading ? 'Chargement...' : "S'inscrire"}
-              </Button>
-            </Form>
+            <Button variant="primary" type="submit">
+              Créer Utilisateur
+            </Button>
+          </Form>
 
-            <div className="mt-3">
-              <Button variant="link" onClick={() => navigate('/login')}>
-                Déjà un compte ? Connectez-vous
-              </Button>
-            </div>
-          </Col>
-        </Row>
-      </Container>
-    </SignupContainer>
+          {showAlert && (
+            <Alert variant={message.includes('erreur') ? 'danger' : 'success'} className="mt-3">
+              {message}
+            </Alert>
+          )}
+        </Col>
+      </Row>
+    </Container>
   );
 }
 
-export default Signup;
+
+
+export default CreateUser;

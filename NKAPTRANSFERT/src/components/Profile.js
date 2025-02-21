@@ -80,10 +80,16 @@ function Profile() {
             <Row>
               <Col md={6}>
                 <h5><FontAwesomeIcon icon={faUser} className="me-2" /> Informations personnelles</h5>
-                <p><strong>Nom:</strong> {userInfo.name}</p>
+                <p><strong>Nom:</strong> {userInfo.firstName} {userInfo.lastName}</p>
                 <p><strong>Email:</strong> {userInfo.email}</p>
+                <p><strong>Pays:</strong> {userInfo.country}</p>
+                <p><strong>Sexe:</strong> {userInfo.gender}</p>
+                <p><strong>Date de Naissance:</strong> {userInfo.birthDate}</p>
+                <p><strong>Addresse:</strong> {userInfo.street}</p>
+                <p><strong>Ville:</strong> {userInfo.city}</p>
+                <p><strong>Code Postal:</strong> {userInfo.postalCode}</p>
                 <p><strong>Téléphone:</strong> {userInfo.phone}</p>
-                <p><strong>Statut du compte:</strong> <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'green' }} /></p>
+                <p><strong>Statut du compte:</strong> {userInfo.status} <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'green' }} /></p>
               </Col>
             </Row>
           </Card.Body>
@@ -131,11 +137,11 @@ function Profile() {
     <Container fluid className="mt-5 container-custom">
       <Row>
         <Col md={4}>
-          <Nav defaultActiveKey="/home" className="flex-column">
-            <Nav.Link href="#account"><FontAwesomeIcon icon={faUser} className="me-2" /> Compte</Nav.Link>
-            <Nav.Link href="#recipients"><FontAwesomeIcon icon={faUser} className="me-2" /> Destinataires</Nav.Link>
-            <Nav.Link href="#send-money"><FontAwesomeIcon icon={faUser} className="me-2" /> Envoyer de l'argent</Nav.Link>
-            <Nav.Link href="#transactions"><FontAwesomeIcon icon={faUser} className="me-2" /> Transactions</Nav.Link>
+          <Nav defaultActiveKey="/" className="flex-column">
+            <Nav.Link href="/profile"><FontAwesomeIcon icon={faUser} className="me-2" /> Compte</Nav.Link>
+            <Nav.Link href="/history"><FontAwesomeIcon icon={faUser} className="me-2" /> Destinataires</Nav.Link>
+            <Nav.Link href="/transfer"><FontAwesomeIcon icon={faUser} className="me-2" /> Envoyer de l'argent</Nav.Link>
+            <Nav.Link href="/history"><FontAwesomeIcon icon={faUser} className="me-2" /> Transactions</Nav.Link>
           </Nav>
         </Col>
 

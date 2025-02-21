@@ -2,74 +2,124 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const User = require('../models/User');
 const nodemailer = require('nodemailer');
 
-// Fonction pour ajouter un administrateur
-exports.register = async (req, res) => {
-    const { name, email, phone, password, passwordConfirm } = req.body;
-  
-    // Validation de base pour vérifier que tous les champs sont fournis
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ message: 'Tous les champs sont requis.' });
+// Function to add an administrator
+
+exports.createAdmin = async (req, res) => {
+    const { name, email, phone, password, passwordConfirm, role } = req.body;
+
+    // Field validation
+    if (!name || !email || !phone || !password || !passwordConfirm) {
+        return res.status(400).json({ message: 'All fields are required.' });
     }
-  
+
+    if (password !== passwordConfirm) {
+        return res.status(400).json({ message: 'Passwords do not match.' });
+    }
+
     try {
-      // Vérification si l'utilisateur existe déjà avec cet email
-      db.query('SELECT * FROM admins WHERE email = ?', [email], async (err, results) => {
-        if (err) {
-          console.error('Erreur lors de la vérification de l\'utilisateur:', err);
-          return res.status(500).json({ message: 'Erreur interne du serveur' });
-        }
-  
-        if (results.length > 0) {
-          return res.status(409).json({ message: 'Email déjà utilisé' });
-        } else if (password !== passwordConfirm) {
-            return res.status(400).json({ message: 'Les mots de passe ne correspondent pas' });
-        }
-
-  
-        // Hachage du mot de passe
-        let hashedPassword = await bcrypt.hash(password, 8);
-        console.log(hashedPassword);
-
-        // res.send('test');
-  
-        // Insertion de l'utilisateur dans la base de données
-        db.query(
-          'INSERT INTO admins SET ?', {name: name, email: email, phone: phone, password: hashedPassword},
-          (err, result) => {
+        // Check if the user already exists
+        db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
             if (err) {
-              console.error('Erreur lors de l\'insertion dans la base de données:', err);
-              return res.status(500).json({ message: 'Erreur interne du serveur' });
-            } else {
-                const token = jwt.sign(
-                    { userId: result.insertId, email },
-                    process.env.JWT_SECRET,
-                    // process.env.JWT_SECRET,
-                    // { expiresIn: '1h' }
-                );
-
-                console.log(result);
-                return res.status(201).json({ message: 'Utilisateur créé avec succès', token });
+                console.error('Error checking user:', err);
+                return res.status(500).json({ message: 'Internal server error.' });
             }
-  
-            // Création du token JWT
-            const token = jwt.sign(
-              { userId: result.insertId, email },
-              process.env.JWT_SECRET,
-              { expiresIn: '1h' }
-            );
-  
-            // Réponse avec le token
-            res.status(201).json({ message: 'Utilisateur créé avec succès!', token });
-          }
-        );
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'enregistrement:', error);
-      res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
-  };
 
-module.exports = exports
+            if (results.length > 0) {
+                return res.status(409).json({ message: 'Email already in use.' });
+            }
+
+            // Limit the number of superAdmins to 2
+            if (role === 'superAdmin') {
+                db.query('SELECT COUNT(*) AS count FROM users WHERE role = ?', ['superAdmin'], async (err, results) => {
+                    if (err) {
+                        console.error('Error checking superAdmins:', err);
+                        return res.status(500).json({ message: 'Internal server error.' });
+                    }
+
+                    if (results[0].count >= 2) {
+                        return res.status(400).json({ message: 'Maximum number of superAdmins reached (2 max).' });
+                    }
+
+                    // Hash the password
+                    const hashedPassword = await bcrypt.hash(password, 8);
+
+                    // Insert the superAdmin
+                    db.query(
+                        'INSERT INTO users SET ?',
+                        { name, email, phone, password: hashedPassword, role },
+                        (err, result) => {
+                            if (err) {
+                                console.error('Error inserting into database:', err);
+                                return res.status(500).json({ message: 'Internal server error.' });
+                            }
+
+                            // Generate JWT token
+                            const token = jwt.sign(
+                                { userId: result.insertId, email, role },
+                                process.env.JWT_SECRET,
+                                { expiresIn: '1h' }
+                            );
+
+                            res.status(201).json({ message: 'SuperAdmin created successfully.', token });
+                        }
+                    );
+                });
+            } else {
+                // Default role to 'admin' if not specified
+                const userRole = role || 'admin';
+
+                // Hash the password
+                const hashedPassword = await bcrypt.hash(password, 8);
+
+                // Insert the user
+                db.query(
+                    'INSERT INTO users SET ?',
+                    { name, email, phone, password: hashedPassword, role: userRole },
+                    (err, result) => {
+                        if (err) {
+                            console.error('Error inserting into database:', err);
+                            return res.status(500).json({ message: 'Internal server error.' });
+                        }
+
+                        // Generate JWT token
+                        const token = jwt.sign(
+                            { userId: result.insertId, email, role: userRole },
+                            process.env.JWT_SECRET,
+                            { expiresIn: '1h' }
+                        );
+
+                        res.status(201).json({ message: 'Admin created successfully.', token });
+                    }
+                );
+            }
+        });
+    } catch (error) {
+        console.error('Error creating admin:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+
+exports.exportUsers = async (req, res) => {
+  try {
+      db.query('SELECT * FROM users', (err, results) => {
+          if (err) {
+              console.error('Error retrieving users:', err);
+              return res.status(500).json({ message: 'Internal server error.' });
+          }
+
+          // Convert results to CSV (or other format)
+          const csv = results.map(user => Object.values(user).join(',')).join('\n');
+
+          res.header('Content-Type', 'text/csv');
+          res.attachment('users.csv');
+          res.send(csv);
+      });
+  } catch (error) {
+      console.error('Error exporting users:', error);
+      res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+module.exports = exports;

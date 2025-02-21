@@ -2,7 +2,7 @@
     "translation": {
       "heading": "NOUVEAUTÉ TRANSFERT D'ARGENT",
       "estimateTransfer": "Estimer un transfert",
-      "sendCountryLabel": "Pays D'envoi",
+      "sendingCountryLabel": "Pays D'envoi",
       "continentFromLabel": "Continent d'envoi",
       "continentToLabel": "Continent de réception",
       "selectContinent": "Selectionner un Continent",

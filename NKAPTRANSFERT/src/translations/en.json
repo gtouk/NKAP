@@ -1,7 +1,7 @@
 {"translation": {
     "heading": "NEW MONEY TRANSFER",
     "estimateTransfer": "Estimate a transfer",
-    "sendCountryLabel": "Sending Country",
+    "sendingCountryLabel": "Sending Country",
     "continentFromLabel": "Sending Continent",
     "continentToLabel": "Receiving Continent",
     "selectContinent": "Select a Continent",

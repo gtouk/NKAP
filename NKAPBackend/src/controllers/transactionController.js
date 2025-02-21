@@ -2,7 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const User = require('../models/User');
+// const User = require('../models/User');
 const nodemailer = require('nodemailer');
 
 
@@ -52,16 +52,16 @@ exports.sendEmail = async (req, res) => {
 }
 
 exports.transactions = async (req, res) => {
-  const { userId, amount, recipientName } = req.body;  // L'ID de l'utilisateur est extrait du token
+  const { userId, amount, recipientName, method, accountNumber,recipientTown, recipientAddress, reasonOfSending} = req.body;  // L'ID de l'utilisateur est extrait du token
 
   // Vérification des champs obligatoires
-  if (!userId || !amount || !recipientName) {
+  if (!userId || !amount || !recipientName || !method || !accountNumber || !recipientTown || !recipientAddress || !reasonOfSending) {
     return res.status(400).json({ message: 'Tous les champs sont obligatoires' });
   }
   try {
     // Requête SQL pour insérer la transaction dans la base de données
     db.query(
-      'INSERT INTO transactions SET ?', { user_id: userId, amount: amount, recipient_name: recipientName },
+      'INSERT INTO transactions SET ?', { user_id: userId, amount: amount, recipient_name: recipientName, method: method, recipientTown: recipientTown, recipientAddress: recipientAddress, reasonOfSending: reasonOfSending, accountNumber: accountNumber},
       (error, results) => {
         if (error) {
           console.error('Erreur lors de la transaction:', error);
@@ -84,7 +84,7 @@ exports.getTransactions = async (req, res) => {
   const userId = req.user.id;
 
   const query = `
-        SELECT t.amount, t.transaction_date, t.recipient_name, u.name AS user_name
+        SELECT t.amount, t.method, t.transactionState, t.transaction_date, t.accountNumber, t.recipientTown, t.recipientAddress, t.recipient_name, u.firstName AS user_name
         FROM transactions t
         JOIN users u ON t.user_id = u.id
         WHERE t.user_id = ? 
@@ -109,14 +109,14 @@ exports.getTransactions = async (req, res) => {
 }
 
 exports.sendMail = async (req, res) => {
-  const { name, email, subject, message } = req.body;
+  const { firstName, lastName, email, subject, message } = req.body;
 
   const mailOptions = {
     from: email, // Expéditeur (e-mail de l'utilisateur)
     to: process.env.EMAIL_USER, // Destinataire (e-mail de l'entreprise)
-    subject: `Nouveau message de ${name}: ${subject}`,
+    subject: `Nouveau message de ${firstName}: ${subject}`,
     text: `
-      Nom: ${name}
+      Nom: ${firstName} ${lastName}
       Email: ${email}
       Objet: ${subject}
       Message: ${message}

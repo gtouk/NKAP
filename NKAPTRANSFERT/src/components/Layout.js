@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Button, Col, Container, Nav, Navbar, Row } from 'react-bootstrap';
 import Modal from 'react-bootstrap/Modal';
 import { useTranslation } from 'react-i18next';
@@ -10,8 +10,11 @@ import { AuthContext } from '../contexts/AuthContext';
 const Layout = ({ children }) => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  // eslint-disable-next-line
   const [userInfo, setUserInfo] = useState(null);
+  // eslint-disable-next-line
   const [contactInfo, setContactInfo] = useState(null);
+  // eslint-disable-next-line
   const [openingHours, setOpeningHours] = useState([]);
   const { isAuthenticated, logout } = useContext(AuthContext);
   console.log("🟢 Layout - isAuthenticated:", isAuthenticated);
@@ -19,13 +22,13 @@ const Layout = ({ children }) => {
 
 
 
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/user').then(res => res.json()).then(setUserInfo),
-      fetch('/api/contact-info').then(res => res.json()).then(setContactInfo),
-      fetch('/api/opening-hours').then(res => res.json()).then(setOpeningHours),
-    ]).catch(error => console.error('Erreur lors de la récupération des données:', error));
-  }, []);
+  // useEffect(() => {
+  //   Promise.all([
+  //     fetch('/api/user').then(res => res.json()).then(setUserInfo),
+  //     fetch('/api/contact-info').then(res => res.json()).then(setContactInfo),
+  //     fetch('/api/opening-hours').then(res => res.json()).then(setOpeningHours),
+  //   ]).catch(error => console.error('Erreur lors de la récupération des données:', error));
+  // }, []);
 
   const swapLanguage = () => i18n.changeLanguage(i18n.language === 'en' ? 'fr' : 'en');
 
@@ -42,21 +45,21 @@ const Layout = ({ children }) => {
     }
   };
 
-    // Fonction pour afficher et cacher le modal de déconnexion
-    const handleShowModal = () => setShowModal(true);
-    const handleLogoutClick = async () => {
-      logout();
-      handleCloseModal();
-    };
-    const handleCloseModal = () => setShowModal(false);
+  // Fonction pour afficher et cacher le modal de déconnexion
+  const handleShowModal = () => setShowModal(true);
+  const handleLogoutClick = async () => {
+    logout();
+    handleCloseModal();
+  };
+  const handleCloseModal = () => setShowModal(false);
 
   const navLinks = [
-    { path: '/home', label: t('home') },
+    // { path: '/', label: t('home') } || {path: '/home', label: t('home')},
     { path: '/transfer', label: t('transfer') },
     { path: '/pay', label: t('pay') },
     { path: '/contact', label: t('contact') },
     { path: '/history', label: t('history') },
-    { path: '/profile', label: userInfo ? userInfo.username : <i className="fas fa-user-circle"></i> },
+    { path: '/profile', label: userInfo ? userInfo.username : <i className="fas fa-user-circle"> Profile </i>},
   ];
 
   return (
@@ -69,7 +72,13 @@ const Layout = ({ children }) => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto">
-              {navLinks.map(({ path, label }) => (
+              <Nav.Link as={NavLink} to="/home"
+                onMouseEnter={e => handleMouseEvent(e, 'enter')}
+                onMouseLeave={e => handleMouseEvent(e, 'leave')}
+              >
+                {t('home')}
+              </Nav.Link>
+              {isAuthenticated && navLinks.map(({ path, label }) => (
                 <Nav.Link key={path} as={NavLink} to={path}
                   onMouseEnter={e => handleMouseEvent(e, 'enter')}
                   onMouseLeave={e => handleMouseEvent(e, 'leave')}
@@ -124,24 +133,24 @@ const Layout = ({ children }) => {
             <Row>
               <Col md={4} className="contact-information">
                 <h5 onMouseEnter={e => handleMouseEvent(e, 'enter')}
-                    onMouseLeave={e => handleMouseEvent(e, 'leave')}>
+                  onMouseLeave={e => handleMouseEvent(e, 'leave')}>
                   {t('contactUs')}
                 </h5>
                 {['phone', 'email', 'location'].map(key => (
                   <p key={key} onMouseEnter={e => handleMouseEvent(e, 'enter')}
-                     onMouseLeave={e => handleMouseEvent(e, 'leave')}>
+                    onMouseLeave={e => handleMouseEvent(e, 'leave')}>
                     <i className={`fas fa-${key === 'location' ? 'map-marker-alt' : key}`}></i> {contactInfo[key]}
                   </p>
                 ))}
               </Col>
               <Col md={8} className="opening-hours">
                 <h5 onMouseEnter={e => handleMouseEvent(e, 'enter')}
-                    onMouseLeave={e => handleMouseEvent(e, 'leave')}>
+                  onMouseLeave={e => handleMouseEvent(e, 'leave')}>
                   {t('openingHours')}
                 </h5>
                 {openingHours.map((hour, index) => (
                   <p key={index} onMouseEnter={e => handleMouseEvent(e, 'enter')}
-                     onMouseLeave={e => handleMouseEvent(e, 'leave')}>
+                    onMouseLeave={e => handleMouseEvent(e, 'leave')}>
                     <i className="fas fa-clock"></i> {hour}
                   </p>
                 ))}

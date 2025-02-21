@@ -4,6 +4,8 @@ const router = express.Router();
 const authenticateJWT = require('../middleware/auth');
 const {body, validationResult} = require('express-validator');
 const db = require('../config/db');
+const {isAdmin, isSuperAdmin} = require('../middleware/verifyAdmin');
+const checkUserStatus = require('../middleware/checkUserStatus');
 
 
 router.post('/register',[ 
@@ -21,6 +23,9 @@ router.get('/', authenticateJWT, userController.getAllUsers);
 router.post('/refresh-token', userController.refreshToken);
 router.get('/profile', authenticateJWT, userController.getUserProfile);
 router.post('/update-password', authenticateJWT, userController.updatePassword);
+router.get('/export-users', authenticateJWT, isAdmin, userController.exportUsers);
+router.put('/unblock-user/:id', authenticateJWT, isAdmin, userController.unblockUser);
+router.put('/block-user/:id', authenticateJWT, isAdmin, userController.blockUser);
 
 
 

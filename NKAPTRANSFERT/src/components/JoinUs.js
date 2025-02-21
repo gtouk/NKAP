@@ -4,7 +4,7 @@ import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState } from 'react';
 import { Accordion, Alert, Button, Container } from 'react-bootstrap';
-import './Style/Joindre.css';
+import './Styles/Joindre.css';
 
 function JoinUs() {
   const [activeKey, setActiveKey] = useState(null);

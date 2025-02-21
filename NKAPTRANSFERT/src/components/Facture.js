@@ -3,47 +3,47 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Button, Col, Form, InputGroup, Row } from 'react-bootstrap';
-import './Style/Facture.css';
+import './Styles/Facture.css';
 
 const countryCurrencyMap = {
-  Canada: { currency: 'CAD', receiveCountry: 'cameroun' },
-  cameroun: { currency: 'XAF', receiveCountry: 'Canada' },
-  'Cote d\'ivoire': { currency: 'XOF', receiveCountry: 'France' },
+  Canada: { currency: 'CAD', receivingCountry: 'cameroun' },
+  cameroun: { currency: 'XAF', receivingCountry: 'Canada' },
+  'Cote d\'ivoire': { currency: 'XOF', receivingCountry: 'France' },
 };
 
 function Facture() {
   const [country, setCountry] = useState('');
   const [currency, setCurrency] = useState('');
-  const [receiveCountry, setReceiveCountry] = useState('');
-  const [sendAmount, setSendAmount] = useState(0);
-  const [receiveAmount, setReceiveAmount] = useState(0);
+  const [receivingCountry, setReceivingCountry] = useState('');
+  const [amountToSend, setAmountToSend] = useState(0);
+  const [amountToReceive, setAmountToReceive] = useState(0);
   const [fees, setFees] = useState(0);
   const [totalToPay, setTotalToPay] = useState(0);
   const exchangeRate = 450;
 
   useEffect(() => {
     if (country && countryCurrencyMap[country]) {
-      const { currency, receiveCountry } = countryCurrencyMap[country];
+      const { currency, receivingCountry } = countryCurrencyMap[country];
       setCurrency(currency);
-      setReceiveCountry(receiveCountry);
+      setReceivingCountry(receivingCountry);
     } else {
       setCurrency('');
-      setReceiveCountry('');
+      setReceivingCountry('');
     }
   }, [country]);
 
   useEffect(() => {
     if (country === 'Canada') {
-      setReceiveAmount(sendAmount * exchangeRate);
+      setAmountToReceive(amountToSend * exchangeRate);
     } else if (country === 'cameroun') {
-      setReceiveAmount(sendAmount / exchangeRate);
+      setAmountToReceive(amountToSend / exchangeRate);
     } else {
-      setReceiveAmount(0);
+      setAmountToReceive(0);
     }
-    const calculatedFees = sendAmount * 0.01;
+    const calculatedFees = amountToSend * 0.01;
     setFees(calculatedFees);
-    setTotalToPay(sendAmount + calculatedFees);
-  }, [sendAmount, country]);
+    setTotalToPay(amountToSend + calculatedFees);
+  }, [amountToSend, country]);
 
   const handleCountryChange = (event) => {
     const selectedCountry = event.target.value;
@@ -67,7 +67,7 @@ function Facture() {
       phone: event.target.formPhone.value,
       email: event.target.formEmail.value,
       country: country,
-      sendAmount: sendAmount,
+      amountToSend: amountToSend,
       currency: currency,
       details: event.target.formDetails.value,
     };
@@ -128,8 +128,8 @@ function Facture() {
                   <Form.Control
                     type="number"
                     placeholder="Entrez le montant"
-                    value={sendAmount}
-                    onChange={(e) => setSendAmount(parseFloat(e.target.value) || 0)}
+                    value={amountToSend}
+                    onChange={(e) => setAmountToSend(parseFloat(e.target.value) || 0)}
                     required
                   />
                 </InputGroup>

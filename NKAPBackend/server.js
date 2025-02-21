@@ -6,80 +6,84 @@ const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 const rareLimit = require('express-rate-limit');
 const cors = require('cors');
+const { isSuperAdmin, isAdmin } = require('./src/middleware/verifyAdmin');
 
 
-// Charger les variables d'environnement
+// Load environment variables
 dotenv.config();
 
-// Initialisation de l'application
+// Initialize the application
 const app = express();
 
-// Middleware pour parser le JSON
+// Middleware to parse JSON
 app.use(express.json());
 app.use(cookieParser());
 
 
-// Middleware pour rendre la connexion MySQL accessible dans les routes
+// Middleware to make the MySQL connection accessible in the routes
 app.use((req, res, next) => {
     req.db = db;
     next();
 });
 
 app.use(cors({
-    origin: 'http://localhost:3001', // Autoriser les requêtes depuis le port 3001 (React)
+    origin: 'http://localhost:3001', // Allow requests from port 3001 (React)
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 }));
 
-// Importer et utiliser les routes utilisateur et admin
+// Import and use user and admin routes
 const userRoutes = require('./src/routes/userRoutes');
 const transactionRoutes = require('./src/routes/transactionRoute');
+const adminRoutes = require('./src/routes/adminRoutes');
+
 // const adminRoutes = require('./src/routes/adminRoutes');
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/admins', adminRoutes);
 // app.use('/api/admins', adminRoutes);
 
-//setting up csrf protection
+// Setting up csrf protection
 const csrfProtection = csurf({cookie: true});
 
-//protected sensitive routes with csrf
+// Protect sensitive routes with csrf
 app.post('/sensitive-route', csrfProtection, (req, res) => {
-    res.json({message: 'This route is protected with CSRF attacks'});
+    res.json({message: 'This route is protected from CSRF attacks'});
 });
 
-// Middleware pour la gestion des erreurs
+// Middleware for error handling
 app.use(errorMiddleware);
 
-// Middleware pour la limitation des requêtes
+// Middleware for rate limiting
 const loginLimiter = rareLimit({
     windowMs: 15 * 60 * 1000,  // 15 minutes
-    max: 7,  // 7 requêtes maximum
-    message: 'Trop de requêtes effectuées depuis cette adresse IP, veuillez réessayer dans 15 minutes'
+    max: 7,  // Maximum 7 requests
+    message: 'Too many requests from this IP address, please try again in 15 minutes'
 });
 
 app.use('/api/users/login', loginLimiter);
 
-// Vérification de la connexion MySQL
+// Check MySQL connection
 db.query('SELECT 1', (err) => {
     if (err) {
-        console.error('Erreur lors de la connexion à la base de données :', err);
-        process.exit(1); // Arrête le serveur en cas d'erreur critique
+        console.error('Error connecting to the database:', err);
+        process.exit(1); // Stop the server in case of critical error
     } else {
-        console.log('Connexion à la base de données réussie !');
+        console.log('Successfully connected to the database!');
     }
 });
 
-// Exemple de vérification des tables dans la base de données
+// Example of checking tables in the database
 db.query('SHOW TABLES', (err, results) => {
     if (err) {
-        console.error('Erreur lors de la vérification des tables :', err);
+        console.error('Error checking tables:', err);
     } else {
-        console.log('Tables dans la base de données :', results);
+        console.log('Tables in the database:', results);
     }
 });
 
 
-// Lancer le serveur
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

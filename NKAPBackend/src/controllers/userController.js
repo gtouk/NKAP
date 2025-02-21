@@ -2,8 +2,12 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const User = require('../models/User');
+// const User = require('../models/User');
 const nodemailer = require('nodemailer');
+const { Parser } = require('json2csv');
+const {PDFDocument } = require('pdf-lib');
+const ExcelJS = require('exceljs');
+const twilio = require('twilio')
 
 
 
@@ -11,24 +15,26 @@ const nodemailer = require('nodemailer');
 //register
 
 exports.register = async (req, res) => {
-    const { name, email, phone, password, passwordConfirm } = req.body;
+    const { firstName, lastName, email, country, gender, birthDate,street, city, postalCode, phone, password, confirmPassword } = req.body;
+    console.log(req.body);
+
   
-    // Validation de base pour vérifier que tous les champs sont fournis
-    if (!name || !email || !phone || !password ) {
-      return res.status(400).json({ message: 'Tous les champs sont requis.' });
+    // Basic validation to verify that all fields are provided
+    if (!firstName || !lastName || !email || !gender || !birthDate || !country || !street || !city || !postalCode || !password || !confirmPassword || !phone) {
+      return res.status(400).json({ message: 'All fields required.' });
     }
   
     try {
-      // Vérification si l'utilisateur existe déjà avec cet email
+      // Checking if the user already exists with this email
       db.query('SELECT * FROM users WHERE email = ?', [email, phone], async (err, results) => {
         if (err) {
-          console.error('Erreur lors de la vérification de l\'utilisateur:', err);
+            console.error('Error checking user:', err);
           return res.status(500).json({ message: 'Erreur interne du serveur' });
         }
   
         if (results.length > 0) {
           return res.status(409).json({ message: 'Email déjà utilisé' });
-        } else if (password !== passwordConfirm) {
+        } else if (password !== confirmPassword) {
             return res.status(400).json({ message: 'Les mots de passe ne correspondent pas' });
         }
 
@@ -41,7 +47,7 @@ exports.register = async (req, res) => {
   
         // Insertion de l'utilisateur dans la base de données
         db.query(
-          'INSERT INTO users SET ?', {name: name, email: email, phone: phone, password: hashedPassword},
+          'INSERT INTO users SET ?', {firstName: firstName, lastName: lastName, email: email, country: country, birthDate: birthDate, gender: gender, street: street, city: city, postalCode: postalCode, phone: phone, password: hashedPassword},
           (err, result) => {
             if (err) {
               console.error('Erreur lors de l\'insertion dans la base de données:', err);
@@ -78,7 +84,7 @@ exports.register = async (req, res) => {
 
 // Login
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, status } = req.body;
 
   // Validation des champs nécessaires
   if (!email || !password) {
@@ -97,7 +103,13 @@ exports.login = async (req, res) => {
         return res.status(404).json({ message: 'Utilisateur non trouvé' });
       }
 
+
+
       const user = results[0];
+      if (user.status === 'blocked') {
+        
+        return res.status(403).json({ message: 'Compte bloqué' });
+    }
 
       // Comparaison du mot de passe envoyé avec le mot de passe haché
       const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -112,7 +124,9 @@ exports.login = async (req, res) => {
         token: token, 
         refreshToken: refreshToken, 
         id: user.id,
-        name: user.name, 
+        firstName: user.firstName, 
+        lastName: user.lastName,
+        status:  user.status,
         role: user.role});
     });
   } catch (error) {
@@ -133,7 +147,7 @@ exports.logout = async (req, res) => {
   }
 
   blackList.add(token);
-  res.status(200).json({ message: 'Déconnexion réussie' });
+  res.status(200).json({ message: 'Disconnection successfull' });
 };
 
 
@@ -141,7 +155,7 @@ exports.logout = async (req, res) => {
 exports.getUserProfile = (req, res) => {
     const userId = req.userId;
     console.log('User ID:', userId);
-    const query = 'SELECT name, email, phone FROM users WHERE id = ?';
+    const query = 'SELECT firstName, lastName, country, gender, birthDate, street, city, postalCode, status, email, phone FROM users WHERE id = ?';
 
     db.query(query, [userId], (err, result) => {
       if (err) {
@@ -151,18 +165,18 @@ exports.getUserProfile = (req, res) => {
       if (result.length === 0) {
         return res.status(404).send('User not found');
       }
-      res.json(result[0]); // Retourner les informations de l'utilisateur
+      res.json(result[0]); // return user data
     });
 };
 
-// Update user profile
+
 // Update user profile
 exports.updateUserProfile = async (req, res) => {
     const userId = req.userId;  // On récupère l'ID de l'utilisateur depuis le token JWT
-    const { name, email } = req.body;
+    const { firstName, lastName, email } = req.body;
 
     // Vérification des champs requis
-    if (!name || !email) {
+    if (!firstName || !lastName || !email) {
         return res.status(400).json({ message: 'Le nom et l\'email sont obligatoires.' });
     }
 
@@ -402,6 +416,137 @@ exports.sendEmailForReset = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur." });
     }
   }
+
+  exports.exportUsers = async (req, res) => {
+    console.log("Request received");
+    const format = req.query.format || 'csv'; // Par défaut, le format est CSV
+
+    try {
+        db.query('SELECT * FROM users', async (err, results) => {
+            if (err) {
+                console.error('Erreur lors de la récupération des utilisateurs:', err);
+                return res.status(500).json({ message: 'Erreur interne du serveur.' });
+            }
+
+            // Filtrer les résultats pour exclure le mot de passe
+            const filteredResults = results.map(user => {
+                const { password, ...userWithoutPassword } = user;
+                return userWithoutPassword;
+            });
+
+            // Générer le fichier en fonction du format demandé
+            switch (format) {
+                case 'csv':
+                    return exportCSV(filteredResults, res);
+                case 'pdf':
+                    return await exportPDF(filteredResults, res);
+                case 'excel':
+                    return await exportExcel(filteredResults, res);
+                default:
+                    return res.status(400).json({ message: 'Format non supporté.' });
+            }
+        });
+    } catch (error) {
+        console.error('Erreur lors de l\'exportation des utilisateurs:', error);
+        res.status(500).json({ message: 'Erreur interne du serveur.' });
+    }
+};
+
+// Function to export in CSV
+const exportCSV = (data, res) => {
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(data);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('users.csv');
+    res.send(csv);
+};
+
+// Function to export to PDF
+const exportPDF = async (data, res) => {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage();
+    const { height } = page.getSize();
+
+    let y = height - 50; // Initial vertical position
+
+    // Add the data to the PDF
+    data.forEach((user, index) => {
+        page.drawText(`${index + 1}. ${user.name} - ${user.email}`, {
+            x: 50,
+            y,
+            size: 12,
+        });
+        y -= 20; // Shift down for the next line
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    res.header('Content-Type', 'application/pdf');
+    res.attachment('users.pdf');
+    res.send(pdfBytes);
+};
+
+// Function to export in Excel
+const exportExcel = async (data, res) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Users');
+
+    // Add the headers
+    worksheet.columns = [
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'Name', key: 'name', width: 30 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Role', key: 'role', width: 20 },
+    ];
+
+    // Add the data
+    data.forEach(user => {
+        worksheet.addRow(user);
+    });
+
+    // Generate the Excel file
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.attachment('users.xlsx');
+    res.send(buffer);
+};
+
+  //block a user temporarily
+  exports.blockUser = async (req, res) => {
+  const userId = req.params.id;
+  const { duration } = req.body; // minutes
+
+
+  // const blockedUntil = new Date(Date.now() + duration * 60000); // Convert into milliseconds
+
+  try {
+    db.query(
+      'UPDATE users SET status = ? WHERE id = ?',
+      ['blocked', userId]
+    );
+    res.status(200).json({ message: "User temporarily blocked" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//unblock a user
+exports.unblockUser = async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    db.query(
+      'UPDATE users SET status = ? WHERE id = ?',
+      ['active', userId]
+    );
+    res.status(200).json({ message: "User unblocked" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 
 module.exports = exports;

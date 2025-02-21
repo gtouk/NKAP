@@ -48,27 +48,33 @@ function Login({ onLoginSuccess }) {
         password,
       });
 
-      const { message, token, refreshToken, name, role, id } = response.data;
+      const { message, token, refreshToken, firstName, lastName, role, id, status } = response.data;
 
 
 
       // Stocker les tokens dans localStorage ou dans un state management sécurisé
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('userName', name);
+      localStorage.setItem('userFirstName', firstName);
+      localStorage.setItem('userLastName', lastName);
       localStorage.setItem('role', role);
       localStorage.setItem('email', email);
       localStorage.setItem('id', id);
+      localStorage.setItem('status', status);
       login();
       alert(message || 'Connexion réussie !');
       onLoginSuccess(); // Mettre à jour l'état d'authentification si nécessaire
       // navigate('/'); // Redirection vers la page d'accueil
-      if (role === 'admin') {
-        navigate('/add-admin');
+      if (role === 'admin' || role === 'superAdmin') {
+        navigate('/adminInterface');
       } else if (role === 'user'){
-        navigate('/home');
+        navigate('/');
       }else{
         navigate('/');
+      }
+
+      if (status === 'blocked') {
+        alert("Votre compte est bloqué. Veuillez contacter l'administrateur.");
       }
 
     } catch (err) {
