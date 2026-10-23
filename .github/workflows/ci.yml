@@ -54,7 +54,20 @@ jobs:
           cache-dependency-path: NKAPBackend/package-lock.json
       - run: npm ci
       - name: Create base tables
-        run: node --input-type=module -e "import fs from 'fs'; import mysql from 'mysql2/promise'; const conn = await mysql.createConnection({ host: process.env.DB_HOST, user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME, multipleStatements: true }); await conn.query(fs.readFileSync('dbase.sql','utf8')); await conn.end();"
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'fs';
+          import mysql from 'mysql2/promise';
+          const conn = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            multipleStatements: true,
+          });
+          await conn.query(fs.readFileSync('dbase.sql', 'utf8'));
+          await conn.end();
+          EOF
       - run: npm test
 
   web:
