@@ -1,8 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import en from './translations/en.json';
+import fr from './translations/fr.json';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test('les dictionnaires français et anglais ont les mêmes clés', () => {
+  expect(Object.keys(fr.translation).sort()).toEqual(Object.keys(en.translation).sort());
 });

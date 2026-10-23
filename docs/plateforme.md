@@ -26,6 +26,12 @@ Chaque événement écrit un courriel, un SMS et un WhatsApp. Le courriel part s
 
 `scripts/backup.sh` produit un dump SQL à partir des variables `DB_HOST`, `DB_USER`, `DB_PASSWORD` et `DB_NAME`.
 
+## Intégration continue
+
+À chaque poussée et à chaque pull request, GitHub Actions lance les tests de l'API contre MySQL et construit le site. Sur `main`, le site compilé est archivé et l'image de l'API est publiée sur `ghcr.io/<compte>/nkap-api`.
+
+Le build du site utilise la variable de dépôt `REACT_APP_API_URL` quand elle existe. Sinon, le site appelle `http://localhost:5000`.
+
 ## Applications mobiles
 
 Le site est responsive. Les applications Android et iOS sont à chiffrer à part ; elles ne font pas partie de cette livraison.

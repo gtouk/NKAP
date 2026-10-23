@@ -41,6 +41,8 @@ function Office() {
 
   useEffect(() => {
     load().catch(() => setRows([]));
+    // Recharge seulement au changement de section ; la recherche relance load() elle-même.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section]);
 
   const review = async (decision) => {

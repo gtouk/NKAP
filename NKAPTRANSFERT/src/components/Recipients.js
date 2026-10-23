@@ -28,7 +28,8 @@ function Recipients() {
 
   useEffect(() => {
     load();
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onChange = (event) => setForm({ ...form, [event.target.name]: event.target.value });
 

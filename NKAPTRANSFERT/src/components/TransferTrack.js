@@ -18,6 +18,7 @@ function TransferTrack() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reference]);
 
   const simulate = async () => {
