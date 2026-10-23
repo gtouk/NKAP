@@ -1,12 +1,15 @@
 import { faCheckCircle, faEdit, faLock, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import axios from 'axios'; // for making API requests
+import api from '../api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Col, Container, Form, Nav, Row } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import CompliancePanels from './CompliancePanels';
 
 function Profile() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('personal');
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,58 +22,45 @@ function Profile() {
 
   useEffect(() => {
     // // Fetch user profile data on component mount
-    const token = localStorage.getItem('token');
-    axios.get('http://localhost:3000/api/users/profile', {  // Assuming JWT is sent with cookies
-    headers: {
-      Authorization: `Bearer ${token}`  // Add token to headers
-    }
-  })
+    api.get('/api/users/profile')
       .then(response => {
         setUserInfo(response.data);
         setLoading(false);
       })
       .catch(error => {
-        setError('Failed to load profile data.');
+        setError(t('profileLoadError'));
         setLoading(false);
       })
-  }, [navigate]);
+  }, [navigate, t]);
 
   const handlePasswordUpdate = () => {
 
 
     if (newPassword !== confirmNewPassword) {
-      alert("Les nouveaux mots de passe ne correspondent pas");
+      alert(t('passwordMismatch'));
       return;
     }else if(oldPassword === newPassword) {
-      alert("Le nouveau mot de passe doit être différent de l'ancien mot de passe");
+      alert(t('passwordMustDiffer'));
       return; 
 
     }
 
-    const token = localStorage.getItem('token');
-
-    // Envoyer la requête au backend pour changer le mot de passe
-  axios.post('http://localhost:3000/api/users/update-password', {
+    api.post('/api/users/update-password', {
       oldPassword,
-      newPassword, confirmNewPassword
-    },     
-    {
-      headers: {
-        Authorization: `Bearer ${token}`  // Add token to headers
-      }
-    }
-  )
+      newPassword,
+      confirmNewPassword,
+    })
       .then(response => {
-        alert("Mot de passe mis à jour avec succès");
+        alert(t('passwordUpdated'));
         setShowPasswordForm(false);
       })
       .catch(error => {
-        alert("Erreur lors de la mise à jour du mot de passe");
+        alert(t('passwordUpdateError'));
       });
   };
 
   const renderContent = () => {
-    if (loading) return <p>Loading...</p>;
+    if (loading) return <p>{t('loading')}</p>;
     if (error) return <p>{error}</p>;
     
     if (activeTab === 'personal' && userInfo) {
@@ -79,17 +69,17 @@ function Profile() {
           <Card.Body>
             <Row>
               <Col md={6}>
-                <h5><FontAwesomeIcon icon={faUser} className="me-2" /> Informations personnelles</h5>
-                <p><strong>Nom:</strong> {userInfo.firstName} {userInfo.lastName}</p>
-                <p><strong>Email:</strong> {userInfo.email}</p>
-                <p><strong>Pays:</strong> {userInfo.country}</p>
-                <p><strong>Sexe:</strong> {userInfo.gender}</p>
-                <p><strong>Date de Naissance:</strong> {userInfo.birthDate}</p>
-                <p><strong>Addresse:</strong> {userInfo.street}</p>
-                <p><strong>Ville:</strong> {userInfo.city}</p>
-                <p><strong>Code Postal:</strong> {userInfo.postalCode}</p>
-                <p><strong>Téléphone:</strong> {userInfo.phone}</p>
-                <p><strong>Statut du compte:</strong> {userInfo.status} <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'green' }} /></p>
+                <h5><FontAwesomeIcon icon={faUser} className="me-2" /> {t('personalInfo')}</h5>
+                <p><strong>{t('lastName')}:</strong> {userInfo.firstName} {userInfo.lastName}</p>
+                <p><strong>{t('email')}:</strong> {userInfo.email}</p>
+                <p><strong>{t('country')}:</strong> {userInfo.country}</p>
+                <p><strong>{t('gender')}:</strong> {userInfo.gender === 'male' ? t('genderMale') : userInfo.gender === 'female' ? t('genderFemale') : userInfo.gender === 'other' ? t('genderOther') : userInfo.gender}</p>
+                <p><strong>{t('birthDate')}:</strong> {userInfo.birthDate}</p>
+                <p><strong>{t('addressLabel')}:</strong> {userInfo.street}</p>
+                <p><strong>{t('city')}:</strong> {userInfo.city}</p>
+                <p><strong>{t('postalCode')}:</strong> {userInfo.postalCode}</p>
+                <p><strong>{t('phone')}:</strong> {userInfo.phone}</p>
+                <p><strong>{t('accountStatus')}:</strong> {userInfo.status === 'blocked' ? t('statusBlocked') : t('statusActive')} <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'green' }} /></p>
               </Col>
             </Row>
           </Card.Body>
@@ -101,30 +91,31 @@ function Profile() {
           <Card.Body>
             <Row>
               <Col md={6}>
-                <h5><FontAwesomeIcon icon={faLock} className="me-2" /> Connexion et sécurité</h5>
+                <h5><FontAwesomeIcon icon={faLock} className="me-2" /> {t('security')}</h5>
                 <p>
-                  <strong>Mot de passe:</strong> ******
+                  <strong>{t('password')}:</strong> ******
                   <Button variant="link" onClick={() => setShowPasswordForm(!showPasswordForm)}>
-                    <FontAwesomeIcon icon={faEdit} /> Modifier
+                    <FontAwesomeIcon icon={faEdit} /> {t('modify')}
                   </Button>
                 </p>
                 {showPasswordForm && (
                   <Form>
                     <Form.Group className="mb-3">
-                      <Form.Label>Ancien mot de passe</Form.Label>
+                      <Form.Label>{t('oldPassword')}</Form.Label>
                       <Form.Control type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label>Nouveau mot de passe</Form.Label>
+                      <Form.Label>{t('newPassword')}</Form.Label>
                       <Form.Control type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                     </Form.Group>
                     <Form.Group className="mb-3">
-                      <Form.Label>Confirmer le nouveau mot de passe</Form.Label>
+                      <Form.Label>{t('confirmNewPassword')}</Form.Label>
                       <Form.Control type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} />
                     </Form.Group>
-                    <Button variant="success" onClick={handlePasswordUpdate}>Confirmer</Button>
+                    <Button variant="success" onClick={handlePasswordUpdate}>{t('confirm')}</Button>
                   </Form>
                 )}
+                <CompliancePanels />
               </Col>
             </Row>
           </Card.Body>
@@ -138,24 +129,24 @@ function Profile() {
       <Row>
         <Col md={4}>
           <Nav defaultActiveKey="/" className="flex-column">
-            <Nav.Link href="/profile"><FontAwesomeIcon icon={faUser} className="me-2" /> Compte</Nav.Link>
-            <Nav.Link href="/history"><FontAwesomeIcon icon={faUser} className="me-2" /> Destinataires</Nav.Link>
-            <Nav.Link href="/transfer"><FontAwesomeIcon icon={faUser} className="me-2" /> Envoyer de l'argent</Nav.Link>
-            <Nav.Link href="/history"><FontAwesomeIcon icon={faUser} className="me-2" /> Transactions</Nav.Link>
+            <Nav.Link href="/profile"><FontAwesomeIcon icon={faUser} className="me-2" /> {t('account')}</Nav.Link>
+            <Nav.Link href="/recipients"><FontAwesomeIcon icon={faUser} className="me-2" /> {t('navRecipients')}</Nav.Link>
+            <Nav.Link href="/transfer"><FontAwesomeIcon icon={faUser} className="me-2" /> {t('sendMoney')}</Nav.Link>
+            <Nav.Link href="/history"><FontAwesomeIcon icon={faUser} className="me-2" /> {t('transactions')}</Nav.Link>
           </Nav>
         </Col>
 
         <Col md={8}>
-          <h2><FontAwesomeIcon icon={faUser} className="me-2" /> Profil</h2>
+          <h2><FontAwesomeIcon icon={faUser} className="me-2" /> {t('profile')}</h2>
           <Nav variant="tabs" defaultActiveKey="personal">
             <Nav.Item>
               <Nav.Link eventKey="personal" onClick={() => setActiveTab('personal')}>
-                <FontAwesomeIcon icon={faUser} className="me-2" /> Informations personnelles
+                <FontAwesomeIcon icon={faUser} className="me-2" /> {t('personalInfo')}
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="security" onClick={() => setActiveTab('security')}>
-                <FontAwesomeIcon icon={faLock} className="me-2" /> Connexion et sécurité
+                <FontAwesomeIcon icon={faLock} className="me-2" /> {t('security')}
               </Nav.Link>
             </Nav.Item>
           </Nav>

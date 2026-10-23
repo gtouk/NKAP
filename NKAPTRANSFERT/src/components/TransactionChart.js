@@ -1,70 +1,39 @@
-import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Line } from 'react-chartjs-2';
 
-// Enregistrer les composants nécessaires pour Chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-const TransactionChart = () => {
-  const [transactions, setTransactions] = useState([]);
+const TransactionChart = ({ transactions = [] }) => {
+  const { t } = useTranslation();
+  if (!transactions.length) {
+    return <p className="mt-3">{t('noTransactionsChart')}</p>;
+  }
 
-  useEffect(() => {
-    // Récupérer les transactions de l'API
-    const fetchTransactions = async () => {
-      try {
-        const token = localStorage.getItem('token');  // Supposons que le token est stocké dans localStorage
-        const response = await axios.get('http://localhost:3000/api/transactions/get-transactions', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setTransactions(response.data);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      }
-    };
-
-    fetchTransactions();
-  }, []);
-
-  // Préparer les données pour le graphique
-  const labels = transactions.map(tx => {
+  const labels = transactions.map((tx) => {
     const date = new Date(tx.transaction_date);
-    const month = date.getMonth() + 1; // Les mois commencent à 0, donc ajouter 1
-    const year = date.getFullYear();
-    return `${month}/${year}`;
+    return `${date.getMonth() + 1}/${date.getFullYear()}`;
   });
 
-  const data = transactions.map(tx => tx.amount);
-
   const dataChart = {
-    labels: labels,
+    labels,
     datasets: [
       {
-        label: 'Montant Transféré',
-        data: data,
+        label: t('amount'),
+        data: transactions.map((tx) => Number(tx.amount)),
         fill: false,
         borderColor: '#16A085',
-        tension: 0.1
-      }
-    ]
+        tension: 0.1,
+      },
+    ],
   };
 
   const options = {
     scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Mois/Année'
-        }
-      },
-      y: {
-        title: {
-          display: true,
-          text: 'Montants Transférés (USD)'
-        },
-        beginAtZero: true
-      }
-    }
+      x: { title: { display: true, text: t('date') } },
+      y: { title: { display: true, text: 'CAD' }, beginAtZero: true },
+    },
   };
 
   return <Line data={dataChart} options={options} />;

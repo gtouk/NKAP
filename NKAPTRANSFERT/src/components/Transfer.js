@@ -1,6 +1,6 @@
 import { faArrowLeft, faCheckCircle, faCreditCard, faMoneyCheckAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import axios from 'axios';
+import api from '../api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect, useState } from 'react';
 import { Button, Card, CardBody, CardHeader, CardTitle, Col, Container, Form, InputGroup, Row } from 'react-bootstrap';
@@ -9,6 +9,14 @@ import { useNavigate } from 'react-router-dom';
 import './Styles/Transfer.css';
 
 
+
+const COUNTRY_KEYS = {
+  Cameroun: 'countryCameroon',
+  "Côte d'Ivoire": 'countryIvoryCoast',
+  Sénégal: 'countrySenegal',
+  Gabon: 'countryGabon',
+  Congo: 'countryCongo',
+};
 
 const COUNTRIES = {
   SendingCountry: {
@@ -23,6 +31,9 @@ const COUNTRIES = {
     countries: [
       { name: 'Cameroun', currency: 'XAF' },
       { name: 'Côte d\'Ivoire', currency: 'XOF' },
+      { name: 'Sénégal', currency: 'XOF' },
+      { name: 'Gabon', currency: 'XAF' },
+      { name: 'Congo', currency: 'XAF' },
     ],
     rates: {
       SendingCountry: 440,
@@ -32,19 +43,6 @@ const COUNTRIES = {
 
 const DEFAULT_EXCHANGE_RATE = 1;
 const MIN_AMOUNT = 15;
-
-// Préfixes valides pour MTN et Orange Cameroun
-const MTN_PREFIXES = [
-  /^645\d{5}$/, /^646\d{5}$/, /^647\d{5}$/, /^648\d{5}$/, /^649\d{5}$/,
-  /^6745\d{6}$/, /^6746\d{6}$/, /^6747\d{6}$/, /^6748\d{6}$/, /^6749\d{6}$/,
-  /^65\d{6}$/, /^67\d{6}$/, /^675\d{6}$/, /^677\d{6}$/,
-];
-
-const ORANGE_PREFIXES = [
-  /^640\d{5}$/, /^641\d{5}$/, /^642\d{5}$/, /^643\d{5}$/, /^644\d{5}$/,
-  /^6940\d{6}$/, /^6941\d{6}$/, /^6942\d{6}$/, /^6943\d{6}$/, /^6944\d{6}$/,
-  /^66\d{6}$/, /^69\d{6}$/, /^696\d{6}$/, /^697\d{6}$/, /^699\d{6}$/,
-];
 
 //useState custom hook
 
@@ -105,7 +103,7 @@ const Send = ({ formData, amountToReceive, onChange, onSubmit, validated, error,
   return (
     <div>
       <h2>
-        <FontAwesomeIcon icon={faMoneyCheckAlt} className="me-2" /> Envoyer de l'argent
+        <FontAwesomeIcon icon={faMoneyCheckAlt} className="me-2" /> {t('sendMoney')}
       </h2>
       <Form noValidate validated={validated} onSubmit={onSubmit}>
         <Form.Group controlId="formSendingCountryEnvoyer">
@@ -120,7 +118,7 @@ const Send = ({ formData, amountToReceive, onChange, onSubmit, validated, error,
             aria-label={t('sendingCountryLabel')}
             required
           >
-            <option value="Canada">Canada</option>
+            <option value="Canada">{t('countryCanada')}</option>
           </Form.Control>
         </Form.Group>
 
@@ -137,9 +135,11 @@ const Send = ({ formData, amountToReceive, onChange, onSubmit, validated, error,
             aria-label={t('sendToLabel')}
             
           >
-            <option value="">Sélectionnez un pays</option>
+            <option value=""> {t('chooseCountry')}</option>
             {COUNTRIES.ReceivingCountry.countries.map((country, index) => (
-              <option key={index} value={country.name}>{country.name}</option>
+              <option key={country.name} value={country.name}>
+                {t(COUNTRY_KEYS[country.name] || 'country')}
+              </option>
             ))}
           </Form.Control>
         </Form.Group>
@@ -154,14 +154,14 @@ const Send = ({ formData, amountToReceive, onChange, onSubmit, validated, error,
               onChange={onChange}
               value={formData.amountToSend}
               aria-label={t('amountToSendLabel')}
-              placeholder="Entrez le montant à envoyer"
+              placeholder={t('amountPlaceholder')}
               defaultValue=''
               required
             />
             <Form.Control value='CAD' readOnly aria-label={t('sendCurrencyLabel')} />
             {formData.amountToSend < MIN_AMOUNT && (
               <div className="text-danger mt-1">
-                {error || "Le montant doit être au moins de 15."}
+                {t('minAmount')}
               </div>
             )}
           </InputGroup>
@@ -183,15 +183,15 @@ const Send = ({ formData, amountToReceive, onChange, onSubmit, validated, error,
           </InputGroup>
         </Form.Group>
         <Button
-          type="submit"
+          type="button"
           className="btn btn-success"
           onClick={onNext}
           disabled={!formData.receivingCountry || !formData.amountToSend || formData.amountToSend < MIN_AMOUNT}
         >
-          Suivant <FontAwesomeIcon icon={faCheckCircle} className="ms-2" />
+          {t('next')} <FontAwesomeIcon icon={faCheckCircle} className="ms-2" />
         </Button>
         <Button type="button" className="btn btn-secondary ms-2" onClick={onBack}>
-          <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> Annuler
+          <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> {t('cancel')}
         </Button>
       </Form>
     </div>
@@ -199,13 +199,14 @@ const Send = ({ formData, amountToReceive, onChange, onSubmit, validated, error,
 };
 
 const WhithdrawalModes = ({ formData, onChange, onNext, onBack }) => {
+  const { t } = useTranslation();
   return (
     <Form controlId="formWithdrawalMode" className="form-group">
       <h2>
-        <FontAwesomeIcon icon={faCreditCard} className="me-2" /> Mode de retrait
+        <FontAwesomeIcon icon={faCreditCard} className="me-2" /> {t('withdrawalMode')}
       </h2>
       <Form.Group controlId="formWithdrawalMode" className="form-group">
-        <Form.Label>Mode de retrait</Form.Label>
+        <Form.Label>{t('withdrawalMode')}</Form.Label>
         <Form.Control
           as="select"
           value={formData.withdrawalMode}
@@ -213,19 +214,19 @@ const WhithdrawalModes = ({ formData, onChange, onNext, onBack }) => {
           name="withdrawalMode"
           required
         >
-          <option value="">--Choisir--</option>
-          <option value="Dépôt bancaire">Dépôt bancaire</option>
+          <option value="">{t('choose')}</option>
+          <option value="Dépôt bancaire">{t('bankDeposit')}</option>
           <option value="Orange Money">Orange Money</option>
           <option value="Mobile Money">Mobile Money</option>
         </Form.Control>
       </Form.Group>
-      <Button type="submit" className="btn btn-success"
+      <Button type="button" className="btn btn-success"
       onClick={onNext}
       disabled={!formData.withdrawalMode}
-      > Suivant <FontAwesomeIcon icon={faCheckCircle} className="ms-2" />
+      > {t('next')} <FontAwesomeIcon icon={faCheckCircle} className="ms-2" />
       </Button>
       <Button type="button" className="btn btn-secondary ms-2" onClick={onBack}>
-        <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> Retour
+        <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> {t('back')}
       </Button>
     </Form>
   );
@@ -235,37 +236,35 @@ const WhithdrawalModes = ({ formData, onChange, onNext, onBack }) => {
 
 
 const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading, onNext, onBack }) => {
+  const { t } = useTranslation();
   const [isOther, setIsOther] = useState(false);
-  const [showErrors, setShowErrors] = useState(false); // Nouvel état pour contrôler l'affichage des erreurs
-
-  // Déterminer les préfixes valides selon le mode de retrait
-  const validPrefixes = formData.withdrawalMode === 'Orange Money' ? ORANGE_PREFIXES : MTN_PREFIXES;
+  const [showErrors, setShowErrors] = useState(false);
 
   const isPhoneNumberValid = (phone) => {
     if (!phone || formData.withdrawalMode === 'Dépôt bancaire') return true;
-    const number = phone.replace('+237', '');
-    return validPrefixes.some((regex) => regex.test(number));
+    const digits = String(phone).replace(/\D/g, '').replace(/^237/, '');
+    return digits.length >= 8 && digits.length <= 10;
   };
 
   const validateDetails = () => {
     const errors = {};
 
-    if (!formData.reasonList) errors.reasonList = 'Veuillez sélectionner une raison.';
-    if (!formData.firstName) errors.firstName = 'Le nom est requis.';
-    if (!formData.lastName) errors.lastName = 'Le prénom est requis.';
-    if (!formData.city) errors.city = 'La ville est requise.';
-    if (!formData.address) errors.address = 'L’adresse est requise.';
-    if (!formData.phoneNumber) errors.phoneNumber = 'Le numéro est requis.';
+    if (!formData.reasonList) errors.reasonList = t('reasonRequired');
+    if (!formData.firstName) errors.firstName = t('lastNameRequired');
+    if (!formData.lastName) errors.lastName = t('firstNameRequired');
+    if (!formData.city) errors.city = t('cityRequired');
+    if (!formData.address) errors.address = t('addressRequired');
+    if (!formData.phoneNumber) errors.phoneNumber = t('numberRequired');
     else if (!isPhoneNumberValid(formData.phoneNumber)) {
       errors.phoneNumber = formData.withdrawalMode === 'Orange Money'
-        ? 'Numéro Orange Money invalide.'
+        ? t('invalidOrange')
         : formData.withdrawalMode === 'Mobile Money'
-        ? 'Numéro MTN Money invalide.'
-        : 'Numéro invalide.';
+        ? t('invalidMtn')
+        : t('invalidNumber');
     }
-    if (!formData.confirmPhoneNumber) errors.confirmPhoneNumber = 'La confirmation du numéro est requise.';
+    if (!formData.confirmPhoneNumber) errors.confirmPhoneNumber = t('confirmNumberRequired');
     else if (formData.phoneNumber !== formData.confirmPhoneNumber) {
-      errors.confirmPhoneNumber = 'Les numéros ne correspondent pas.';
+      errors.confirmPhoneNumber = t('numbersMismatch');
     }
 
     return {
@@ -284,25 +283,25 @@ const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading,
   };
 
   const phoneLabel = formData.withdrawalMode === 'Orange Money'
-    ? 'Numéro de compte Orange Money'
+    ? t('orangeAccount')
     : formData.withdrawalMode === 'Mobile Money'
-    ? 'Numéro de compte MTN Money'
-    : 'Numéro de compte';
+    ? t('mtnAccount')
+    : t('accountNumber');
 
   const phonePlaceholder = formData.withdrawalMode === 'Orange Money'
     ? 'Ex: 69123456'
     : formData.withdrawalMode === 'Mobile Money'
     ? 'Ex: 77123456'
-    : 'Numéro de compte';
+    : t('accountNumber');
 
   return (
     <div className="transfer-step">
       <h2>
-        <FontAwesomeIcon icon={faCreditCard} className="me-2" /> Détails du transfert
+        <FontAwesomeIcon icon={faCreditCard} className="me-2" /> {t('transferDetails')}
       </h2>
       <Form noValidate validated={validated} onSubmit={onSubmit}>
         <Form.Group controlId="formReasonListDetails" className="form-group">
-          <Form.Label>Raisons d'envois</Form.Label>
+          <Form.Label>{t('sendReason')}</Form.Label>
           <Form.Control
             as="select"
             value={formData.reasonList || ''}
@@ -311,65 +310,65 @@ const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading,
             required
             isInvalid={showErrors && !!errors.reasonList}
           >
-            <option value="">--Choisir--</option>
-            <option value="Soutien de la famille ou des amis">Soutien de la famille ou des amis</option>
-            <option value="Achat de services">Achat de services</option>
-            <option value="Envoie de fond a soi-meme">Envoie de fond a soi-meme</option>
+            <option value="">{t('choose')}</option>
+            <option value="Soutien de la famille ou des amis">{t('reasonFamily')}</option>
+            <option value="Achat de services">{t('reasonServices')}</option>
+            <option value="Envoie de fond a soi-meme">{t('reasonSelf')}</option>
           </Form.Control>
           <Form.Control.Feedback type="invalid">{errors.reasonList}</Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group controlId="validationCustomFirstNameDetails" className="form-group">
-          <Form.Label>Nom</Form.Label>
+          <Form.Label>{t('recipientLastName')}</Form.Label>
           <Form.Control
             required
             type="text"
             value={formData.firstName || ''}
             onChange={onChange}
             name="firstName"
-            placeholder="Nom"
+            placeholder={t('recipientLastName')}
             isInvalid={showErrors && !!errors.firstName}
           />
           <Form.Control.Feedback type="invalid">{errors.firstName}</Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group controlId="validationCustomLastNameDetails" className="form-group">
-          <Form.Label>Prénom</Form.Label>
+          <Form.Label>{t('recipientFirstName')}</Form.Label>
           <Form.Control
             required
             type="text"
             value={formData.lastName || ''}
             onChange={onChange}
             name="lastName"
-            placeholder="Prénom"
+            placeholder={t('recipientFirstName')}
             isInvalid={showErrors && !!errors.lastName}
           />
           <Form.Control.Feedback type="invalid">{errors.lastName}</Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group controlId="validationCustomCityDetails" className="form-group">
-          <Form.Label>Ville</Form.Label>
+          <Form.Label>{t('recipientCity')}</Form.Label>
           <Form.Control
             required
             type="text"
             value={formData.city || ''}
             onChange={onChange}
             name="city"
-            placeholder="Ville"
+            placeholder={t('recipientCity')}
             isInvalid={showErrors && !!errors.city}
           />
           <Form.Control.Feedback type="invalid">{errors.city}</Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group controlId="validationCustomAddressDetails" className="form-group">
-          <Form.Label>Adresse du destinataire</Form.Label>
+          <Form.Label>{t('recipientAddress')}</Form.Label>
           <Form.Control
             required
             type="text"
             value={formData.address || ''}
             onChange={onChange}
             name="address"
-            placeholder="Adresse du destinataire"
+            placeholder={t('recipientAddress')}
             isInvalid={showErrors && !!errors.address}
           />
           <Form.Control.Feedback type="invalid">{errors.address}</Form.Control.Feedback>
@@ -393,7 +392,7 @@ const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading,
         </Form.Group>
 
         <Form.Group controlId="validationCustomPhoneNum2Details" className="form-group">
-          <Form.Label>Confirmer {phoneLabel.toLowerCase()}</Form.Label>
+          <Form.Label>{t('confirmAccount')}</Form.Label>
           <InputGroup hasValidation>
             {formData.withdrawalMode !== 'Dépôt bancaire' && <InputGroup.Text>+237</InputGroup.Text>}
             <Form.Control
@@ -411,7 +410,7 @@ const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading,
 
         <Form.Group className="mb-3">
           <Form.Check
-            label="Cochez si vous faites cette transaction pour le compte de quelqu’un d’autre"
+            label={t('forSomeoneElse')}
             checked={isOther}
             onChange={() => setIsOther(!isOther)}
           />
@@ -423,7 +422,7 @@ const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading,
           className="btn btn-secondary"
           onClick={onBack}
         >
-          <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> Retour
+          <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> {t('back')}
         </Button>
 
         <Button
@@ -431,29 +430,33 @@ const Details = ({ formData = {}, onChange, onSubmit, validated, error, loading,
           className="btn btn-success ms-2"
           onClick={handleNextClick} // Nouvelle fonction pour gérer le clic
         >
-          Suivant <FontAwesomeIcon icon={faCheckCircle} className="ms-2" />
+          {t('next')} <FontAwesomeIcon icon={faCheckCircle} className="ms-2" />
         </Button>
       </Form>
     </div>
   );
 };
 
-const Success = ({ formData, amountToReceive, onBack, onValidate }) => {
+const Success = ({ formData, quote, quoteError, onBack, onValidate, onPaymentMethod }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState('');
   const handleValidate = async () => {
     try {
-      await onValidate();
-      navigate('/history');
+      setSubmitError('');
+      const created = await onValidate();
+      navigate(`/track/${created.reference}`);
     } catch (error) {
-      console.error('Erreur lors de la validation:', error);
+      setSubmitError(error.response?.data?.message || t('transferFailed'));
     }
   };
 
+  const shown = quote || {};
   const accountLabel = formData.withdrawalMode === 'Orange Money'
-    ? 'Numéro Orange Money'
+    ? t('orangeAccount')
     : formData.withdrawalMode === 'Mobile Money'
-    ? 'Numéro MTN Money'
-    : 'Numéro de compte';
+    ? t('mtnAccount')
+    : t('accountNumber');
 
   return (
     <div>
@@ -461,75 +464,83 @@ const Success = ({ formData, amountToReceive, onBack, onValidate }) => {
       <CardHeader>
         <CardTitle className="d-flex align-items-center">
           <FontAwesomeIcon icon={faCheckCircle} className="me-2 text-success" />
-          Transfert en cours
+          {t('transferPending')}
         </CardTitle>
       </CardHeader>
       <CardBody className="fs-5">
-        <p className="mb-3">
-          Vous etes sur le point d'effectuer une transaction
-        </p>
+        <p className="mb-3">{t('aboutToSend')}</p>
+        {quoteError && <p className="text-danger">{quoteError}</p>}
+        {submitError && <p className="text-danger">{submitError}</p>}
         
         <div className="details-grid">
           <div className="detail-item">
-            <span className="detail-label">Destinaire:</span>
+            <span className="detail-label">{t('recipient')}:</span>
             <span className="detail-value">{formData.firstName} {formData.lastName}</span>
           </div>
-          
           <div className="detail-item">
-            <span className="detail-label">Ville:</span>
+            <span className="detail-label">{t('city')}:</span>
             <span className="detail-value">{formData.city}</span>
           </div>
-          
           <div className="detail-item">
-            <span className="detail-label">Adresse:</span>
+            <span className="detail-label">{t('address')}:</span>
             <span className="detail-value">{formData.address}</span>
           </div>
-          
           <div className="detail-item">
             <span className="detail-label">{accountLabel}:</span>
             <span className="detail-value">{formData.phoneNumber}</span>
           </div>
-          
           <div className="detail-item">
-            <span className="detail-label">Montant envoyé:</span>
-            <span className="detail-value">{formData.amountToSend} {formData.sendingCurrency}</span>
+            <span className="detail-label">{t('amountSent')}:</span>
+            <span className="detail-value">{shown.amount || formData.amountToSend} CAD</span>
           </div>
-          
           <div className="detail-item">
-            <span className="detail-label">Montant reçu:</span>
-            <span className="detail-value">{amountToReceive} {formData.receiveCurrency}</span>
+            <span className="detail-label">{t('fee')}:</span>
+            <span className="detail-value">{shown.fee ?? '—'} CAD</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">{t('otherFees')}:</span>
+            <span className="detail-value">{shown.otherFees ?? 0} CAD</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">{t('fxRate')}:</span>
+            <span className="detail-value">{shown.fxRate ?? '—'}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">{t('amountReceived')}:</span>
+            <span className="detail-value">{shown.amountToReceive ?? '—'} {shown.currencyReceived || ''}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">{t('eta')}:</span>
+            <span className="detail-value">{shown.eta || '—'}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">{t('conditions')}:</span>
+            <span className="detail-value">{shown.conditions || '—'}</span>
           </div>
         </div>
+        <Form.Group className="mt-3">
+          <Form.Label>{t('paymentMethod')}</Form.Label>
+          <Form.Check type="radio" name="paymentMethod" label={t('interac')} checked={formData.paymentMethod === 'interac'} onChange={() => onPaymentMethod('interac')} />
+          <Form.Check type="radio" name="paymentMethod" label={t('bankTransfer')} checked={formData.paymentMethod === 'bank'} onChange={() => onPaymentMethod('bank')} />
+        </Form.Group>
       </CardBody>
     </Card>
-      <Button
-        type='button'
-        className='btn btn-secondary'
-        onClick={onBack}
-      >
-        <FontAwesomeIcon icon={faArrowLeft} className="me-2" /> Modifier
-      </Button>
-      <Button
-        type="button"
-        className="btn btn-success"
-        onClick={handleValidate}
-      >
-        Valider la transaction
-      </Button>
+      <Button type="button" className="btn btn-secondary" onClick={onBack}>{t('modify')}</Button>
+      <Button type="button" className="btn btn-success" onClick={handleValidate} disabled={!quote}>{t('validateTransfer')}</Button>
     </div>
   );
 };
 
 function Transfer() {
   const navigate = useNavigate();
-  // const { t } = useTranslation();
+  const { t } = useTranslation();
   // eslint-disable-next-line
   const [status, setStatus] = useState('');
 
 
   // form state
   const [formData, setFormData] = useState({
-    sendingCountry: '',
+    sendingCountry: 'Canada',
     receiveCurrency: 'XAF',
     receivingCountry: '',
     sendingCurrency: 'CAD',
@@ -545,6 +556,7 @@ function Transfer() {
     reasonList: '',
     withdrawalMode: '',
     promoCode: '',
+    paymentMethod: 'interac',
     recipientList: ['Alice', 'Bob', 'Charlie'],
     userEmail: '',
     userName: '',
@@ -552,9 +564,11 @@ function Transfer() {
   });
 
   const [activeStep, setActiveStep] = useState('send');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [validated, setValidated] = useState(false);
+  const [quote, setQuote] = useState(null);
+  const [quoteError, setQuoteError] = useState('');
+  const [loading] = useState(false);
+  const [error] = useState(null);
+  const [validated] = useState(false);
 
   // get user email and name from local storage
   // const [userEmail, setUserEmail] = useLocalStorage('email', '');
@@ -567,14 +581,6 @@ function Transfer() {
     formData.amountToSend
   );
 
-  // step validation checks
-  const isSendValid = () => 
-    formData.amountToSend >= MIN_AMOUNT &&
-    formData.receivingCountry &&
-    formData.sendingCountry;
-
-
-  // event handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -583,147 +589,55 @@ function Transfer() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setValidated(true);
-
-    if (!isSendValid()) {
-      setError('Veuillez remplir correctement tous les champs requis');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // sending confirmation email
-      await sendConfirmationEmail();
-      
-      // validating transaction
-      await validateTransaction();
-      
-      navigate('/history');
-    } catch (err) {
-      setError('Erreur lors du traitement de la transaction');
-      console.error('Erreur:', err);
-    } finally {
-      setLoading(false);
-    }
+  const handleSubmit = (event) => {
+    event.preventDefault();
   };
 
-  const sendConfirmationEmail = async () => {
-    const storedUserEmail = localStorage.getItem('email');
-    const storedUserName = localStorage.getItem('userName');
-    const token = localStorage.getItem('token');
-    if (!storedUserEmail) throw new Error('Token ou email manquant');
-
-
-    const accountLabel = formData.withdrawalMode === 'Orange Money'
-      ? 'Numéro Orange Money'
-      : formData.withdrawalMode === 'Mobile Money'
-      ? 'Numéro MTN Money'
-      : 'Numéro de compte';
-
-
-    const emailData = {
-      subject: "🔄 Votre transaction est en cours - Nkap Transfer",
-      message: `
-        Bonjour ${storedUserName || 'cher(e) utilisateur(trice)'},
-    
-        Nous vous informons que votre transaction est actuellement en cours de traitement. Voici un récapitulatif des détails de la transaction :
-    
-        🔄 **Détails de la transaction en cours :** 🔄
-    
-        💰 **Montant transféré :** ${formData.amountToSend} ${formData.sendingCurrency}
-        🧑‍🤝‍🧑 **Destinataire :** ${formData.firstName} ${formData.lastName}
-        🌍 **Ville :** ${formData.city}
-        🏠 **Adresse :** ${formData.address}
-        📞 ${accountLabel} ${formData.phoneNumber}
-        💸 **Montant estimé à recevoir :** ${formData.amountToReceive} ${formData.receiveCurrency}
-    
-        ---------------------------------------------
-    
-        🚀 **Statut actuel :** Votre transaction est en cours de validation. Nous faisons tout notre possible pour la traiter dans les plus brefs délais.
-    
-        🕒 **Temps estimé :** Vous recevrez une notification une fois la transaction finalisée. Nous prévoyons une mise à jour dans les prochaines 24 heures.
-    
-        📢 **Suivi de votre transaction :**
-        Vous pouvez suivre l'évolution de votre transaction directement depuis votre tableau de bord sur notre site, ou en contactant notre service client.
-    
-        Merci de faire confiance à **Nkap Transfer**. Nous nous engageons à assurer la sécurité et la rapidité de vos transferts.
-    
-        📧 Pour toute question ou demande d'assistance, contactez-nous à support@nkaptransfer.com.
-    
-        ✨ **Nous vous tiendrons informé(e) dès que votre transaction sera terminée !** ✨
-    
-        Bien cordialement,
-        L’équipe **Nkap Transfer**
-    
-        🔐 *Votre sécurité est notre priorité !* 🔐
-      `
-    };
-    
-    
-
-        try {
-          const response = await fetch(
-            'http://localhost:3000/api/transactions/send-email',{
-            method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`, // Inclure le token pour l'authentification
-              },
-              body: JSON.stringify(emailData),
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.text();
-            console.log('Email sent:', data);
-        } else {
-            const errorData = await response.json();
-            console.error('Error:', errorData.message);
-        }
-    } catch (error) {
-        console.error('Network:', error);
-    }
-};
-
   const validateTransaction = async () => {
-    const userId = localStorage.getItem('id');
-    if (!userId) throw new Error('ID utilisateur manquant');
-
-        try {
-          // Appeler une API pour enregistrer la transaction (optionnel si nécessaire)
-          // console.log('userId', localStorage.getItem('userId'));
-          await axios.post(
-            'http://localhost:3000/api/transactions/transactions', {
-              headers: {
-                'contentType': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('token')}`, // Passer le token JWT dans l'entête de la requête
-              },
-                userId: userId, // Ajouter les données utilisateur
-                amount: formData.amountToSend,
-                recipientName: `${formData.firstName} ${formData.lastName}`,
-                method: `${formData.withdrawalMode}`,
-                recipientTown: `${formData.city}`,
-                recipientAddress: `${formData.address}`,
-                accountNumber: `${formData.phoneNumber}`,
-                reasonOfSending: `${formData.reasonList}`,
-            }
-          );
-
-          alert('Transaction validée avec succès !');
-    
-          // Envoyer l'email et rediriger
-          await sendConfirmationEmail();
-          navigate('/history'); // Rediriger vers la page "Historique"
-        } catch (error) {
-          console.error("Erreur lors de la validation :", error);
-          setStatus("Erreur lors de la validation de la transaction.");
-        }
-      };
+    const response = await api.post('/api/transfers', {
+      amount: Number(formData.amountToSend),
+      beneficiaryFirstName: formData.firstName,
+      beneficiaryLastName: formData.lastName,
+      method: formData.withdrawalMode,
+      recipientTown: formData.city,
+      recipientAddress: formData.address,
+      accountNumber: formData.phoneNumber,
+      phone: formData.phoneNumber,
+      reasonOfSending: formData.reasonList,
+      sendingCountry: formData.sendingCountry || 'Canada',
+      receivingCountry: formData.receivingCountry,
+      promoCode: formData.promoCode,
+    });
+    await api.post(`/api/transfers/${response.data.id}/pay`, { method: formData.paymentMethod || 'interac' });
+    return response.data;
+  };
   
+
+  useEffect(() => {
+    if (activeStep !== 'success') return undefined;
+    let cancelled = false;
+    api.get('/api/transfers/quote', {
+      params: {
+        origin: formData.sendingCountry || 'Canada',
+        destination: formData.receivingCountry,
+        amount: formData.amountToSend,
+        promoCode: formData.promoCode,
+      },
+    }).then((response) => {
+      if (!cancelled) {
+        setQuote(response.data);
+        setQuoteError('');
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        setQuote(null);
+        setQuoteError(error.response?.data?.message || t('transferFailed'));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeStep, formData.sendingCountry, formData.receivingCountry, formData.amountToSend, formData.promoCode, t]);
 
   const goBack = () => {
     switch (activeStep) {
@@ -782,9 +696,11 @@ function Transfer() {
             {activeStep === 'success' && (
               <Success
                 formData={formData}
-                amountToReceive={amountToReceive}
+                quote={quote}
+                quoteError={quoteError}
                 onBack={() => setActiveStep('details')}
                 onValidate={validateTransaction}
+                onPaymentMethod={(method) => setFormData((prev) => ({ ...prev, paymentMethod: method }))}
               />
             )}
           </Col>

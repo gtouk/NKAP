@@ -1,5 +1,6 @@
-import axios from 'axios';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import api from '../api';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -25,6 +26,7 @@ const SignupContainer = styled.div`
 `;
 
 function Signup() {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -45,12 +47,12 @@ function Signup() {
     event.preventDefault();
 
     if (!firstName || !lastName || !email ||!gender ||!birthDate || !country || !street ||!city || !postalCode || !password || !confirmPassword || !phone) {
-      setError('Tous les champs sont requis.');
+      setError(t('requiredFields'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.');
+      setError(t('passwordMismatch'));
       return;
     }
 
@@ -58,7 +60,7 @@ function Signup() {
     setError('');
 
     try {
-       await axios.post('http://localhost:3000/api/users/register', {
+       await api.post('/api/users/register', {
         firstName,
         lastName,
         email,
@@ -91,17 +93,16 @@ function Signup() {
       // const { token } = response.data;
       // localStorage.setItem('authToken', token);
 
-      alert('Inscription réussie !');
-      navigate('/'); // Redirige vers la page d'accueil
+      navigate('/login');
     } catch (err) {
       console.error('Erreur lors de l\'inscription:', err);
 
       if (err.response) {
         // Gestion des erreurs backend
-        const errorMessage = err.response.data?.message || 'Erreur lors de l\'inscription.';
+        const errorMessage = err.response.data?.message || t('signupFailed');
         setError(errorMessage);
       } else {
-        setError('Impossible de se connecter au serveur. Veuillez réessayer plus tard.');
+        setError(t('cannotReachServer'));
       }
     } finally {
       setLoading(false);
@@ -112,14 +113,14 @@ function Signup() {
     <SignupContainer>
       <Container className="mt-5">
         <Row className="justify-content-center">
-          <Col md={6}>
-            <h2 className="display-4 heading">Inscription</h2>
+          <Col md={6} className="auth-card">
+            <h2 className="heading">{t('signup')}</h2>
             <Form onSubmit={handleSubmit}>
               <Form.Group controlId="formFirstName" className="form-group">
-                <Form.Label className="form-label">Nom</Form.Label>
+                <Form.Label className="form-label">{t('firstName')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre Prenom"
+                  placeholder={t('yourFirstName')}
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
@@ -127,10 +128,10 @@ function Signup() {
               </Form.Group>
 
               <Form.Group controlId="formLastName" className="form-group">
-                <Form.Label className="form-label">Nom</Form.Label>
+                <Form.Label className="form-label">{t('lastName')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre nom"
+                  placeholder={t('yourLastName')}
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   required
@@ -138,10 +139,10 @@ function Signup() {
               </Form.Group>
 
               <Form.Group controlId="formEmail" className="form-group">
-                <Form.Label className="form-label">Email</Form.Label>
+                <Form.Label className="form-label">{t('email')}</Form.Label>
                 <Form.Control
                   type="email"
-                  placeholder="Votre email"
+                  placeholder={t('yourEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -150,7 +151,7 @@ function Signup() {
 
               {/* Country */}
               <Form.Group controlId="formCountry" className="form-group">
-                <Form.Label className="form-label">Pays de Residence</Form.Label>
+                <Form.Label className="form-label">{t('residenceCountry')}</Form.Label>
                 <Form.Control
                   type="text"
                   value={country}
@@ -162,23 +163,23 @@ function Signup() {
 
               {/* Sexe */}
               <Form.Group controlId="formGender" className="form-group">
-                <Form.Label className="form-label">Sexe</Form.Label>
+                <Form.Label className="form-label">{t('gender')}</Form.Label>
                 <Form.Control
                   as="select"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   required
                 >
-                  <option value="">Sélectionnez votre sexe</option>
-                  <option value="male">Homme</option>
-                  <option value="female">Femme</option>
-                  <option value="other">Autre</option>
+                  <option value="">{t('selectGender')}</option>
+                  <option value="male">{t('genderMale')}</option>
+                  <option value="female">{t('genderFemale')}</option>
+                  <option value="other">{t('genderOther')}</option>
                 </Form.Control>
               </Form.Group>
 
               {/* Date de naissance */}
               <Form.Group controlId="formBirthDate" className="form-group">
-                <Form.Label className="form-label">Date de naissance</Form.Label>
+                <Form.Label className="form-label">{t('birthDate')}</Form.Label>
                 <Form.Control
                   type="date"
                   value={birthDate}
@@ -189,10 +190,10 @@ function Signup() {
 
               {/* Adresse */}
               <Form.Group controlId="formStreet" className="form-group">
-                <Form.Label className="form-label">Rue</Form.Label>
+                <Form.Label className="form-label">{t('street')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre rue"
+                  placeholder={t('yourStreet')}
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   required
@@ -200,10 +201,10 @@ function Signup() {
               </Form.Group>
 
               <Form.Group controlId="formCity" className="form-group">
-                <Form.Label className="form-label">Ville</Form.Label>
+                <Form.Label className="form-label">{t('city')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre ville"
+                  placeholder={t('yourCity')}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   required
@@ -211,10 +212,10 @@ function Signup() {
               </Form.Group>
 
               <Form.Group controlId="formPostalCode" className="form-group">
-                <Form.Label className="form-label">Code postal</Form.Label>
+                <Form.Label className="form-label">{t('postalCode')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre code postal"
+                  placeholder={t('yourPostalCode')}
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
                   required
@@ -222,13 +223,13 @@ function Signup() {
               </Form.Group>
 
               <Form.Group controlId="formPhone" className="form-group">
-                <Form.Label className="form-label">Téléphone</Form.Label>
+                <Form.Label className="form-label">{t('phone')}</Form.Label>
                 <PhoneInput
                   country={'ca'} // Définit un pays par défaut
                   value={phone}
                   onChange={(value) => setPhone(value)}
                   inputClass="form-control" // Ajoute une classe Bootstrap si nécessaire
-                  placeholder="Votre numéro de téléphone"
+                  placeholder={t('yourPhone')}
                   enableSearch={true} // Permet de rechercher un pays
                   onlyCountries={['ca']} // Affiche uniquement les pays spécifiés
                 />
@@ -236,10 +237,10 @@ function Signup() {
 
 
               <Form.Group controlId="formPassword" className="form-group">
-                <Form.Label className="form-label">Mot de passe</Form.Label>
+                <Form.Label className="form-label">{t('password')}</Form.Label>
                 <Form.Control
                   type="password"
-                  placeholder="Votre mot de passe"
+                  placeholder={t('yourPassword')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -247,10 +248,10 @@ function Signup() {
               </Form.Group>
 
               <Form.Group controlId="formConfirmPassword" className="form-group">
-                <Form.Label className="form-label">Confirmer le mot de passe</Form.Label>
+                <Form.Label className="form-label">{t('confirmPassword')}</Form.Label>
                 <Form.Control
                   type="password"
-                  placeholder="Confirmez votre mot de passe"
+                  placeholder={t('confirmYourPassword')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -260,13 +261,13 @@ function Signup() {
               {error && <p className="text-danger">{error}</p>}
 
               <Button type="submit" variant="primary" className="mt-3" disabled={loading}>
-                {loading ? 'Chargement...' : "S'inscrire"}
+                {loading ? t('loading') : t('signUpAction')}
               </Button>
             </Form>
 
             <div className="mt-3">
               <Button variant="link" onClick={() => navigate('/login')}>
-                Déjà un compte ? Connectez-vous
+                {t('hasAccount')}
               </Button>
             </div>
           </Col>

@@ -1,8 +1,9 @@
 import { faInfoCircle, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import axios from 'axios';
+import api from '../api';
 import React, { useEffect, useState } from 'react';
-import { Button, Col, Form, InputGroup, Row } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
+import { Alert, Button, Col, Form, InputGroup, Row } from 'react-bootstrap';
 import './Styles/Facture.css';
 
 const countryCurrencyMap = {
@@ -12,6 +13,7 @@ const countryCurrencyMap = {
 };
 
 function Facture() {
+  const { t } = useTranslation();
   const [country, setCountry] = useState('');
   const [currency, setCurrency] = useState('');
   const [receivingCountry, setReceivingCountry] = useState('');
@@ -19,6 +21,8 @@ function Facture() {
   const [amountToReceive, setAmountToReceive] = useState(0);
   const [fees, setFees] = useState(0);
   const [totalToPay, setTotalToPay] = useState(0);
+  const [notice, setNotice] = useState('');
+  const [noticeVariant, setNoticeVariant] = useState('success');
   const exchangeRate = 450;
 
   useEffect(() => {
@@ -73,61 +77,65 @@ function Facture() {
     };
 
     // Envoi des données au backend via POST
-    axios.post('/api/facture', formData)
+    api.post('/api/transactions/facture', formData)
       .then((response) => {
-        console.log('Réponse du serveur :', response.data);
-        // Afficher un message de succès ou rediriger l'utilisateur, etc.
+        setNoticeVariant('success');
+        setNotice(response.data.message || t('billSaved'));
+        event.target.reset();
+        setAmountToSend(0);
+        setCountry('');
       })
       .catch((error) => {
-        console.error('Erreur lors de l\'envoi des données :', error);
-        // Afficher un message d'erreur à l'utilisateur
+        setNoticeVariant('danger');
+        setNotice(error.response?.data?.message || t('billError'));
       });
   };
 
   return (
     <div>
       <div className="container mt-5">
-        <h2>Payer Une Facture Ou Frais De Scolarité</h2>
+        <h2>{t('billTitle')}</h2>
+        {notice && <Alert variant={noticeVariant}>{notice}</Alert>}
         <Form onSubmit={handleSubmit}>
           <Form.Group controlId="formName">
-            <Form.Label className="form-label">Nom *</Form.Label>
-            <Form.Control type="text" placeholder="Entrez votre nom" required />
+            <Form.Label className="form-label">{t('nameRequired')} *</Form.Label>
+            <Form.Control type="text" placeholder={t('enterName')} required />
           </Form.Group>
 
           <Row>
             <Col md={6}>
               <Form.Group controlId="formPhone">
-                <Form.Label className="form-label">Téléphone *</Form.Label>
-                <Form.Control type="tel" placeholder="Entrez votre téléphone" required />
+                <Form.Label className="form-label">{t('phone')} *</Form.Label>
+                <Form.Control type="tel" placeholder={t('enterPhone')} required />
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group controlId="formEmail">
-                <Form.Label className="form-label">Email *</Form.Label>
-                <Form.Control type="email" placeholder="Entrez votre email" required />
+                <Form.Label className="form-label">{t('email')} *</Form.Label>
+                <Form.Control type="email" placeholder={t('enterEmail')} required />
               </Form.Group>
             </Col>
           </Row>
 
           <Form.Group controlId="formCountry">
-            <Form.Label className="form-label">Pays du fournisseur ou de l'institution *</Form.Label>
+            <Form.Label className="form-label">{t('providerCountry')} *</Form.Label>
             <Form.Control as="select" value={country} onChange={handleCountryChange} required>
-              <option value="">Choisissez...</option>
-              {Object.keys(countryCurrencyMap).map((country) => (
-                <option key={country} value={country}>{country}</option>
-              ))}
+              <option value="">{t('chooseOption')}</option>
+              <option value="Canada">{t('countryCanada')}</option>
+              <option value="cameroun">{t('countryCameroon')}</option>
+              <option value="Cote d'ivoire">{t('countryIvoryCoast')}</option>
             </Form.Control>
           </Form.Group>
 
           <Row>
             <Col md={6}>
               <Form.Group controlId="formAmount">
-                <Form.Label className="form-label">Montant *</Form.Label>
+                <Form.Label className="form-label">{t('amount')} *</Form.Label>
                 <InputGroup>
                   <InputGroup.Text><FontAwesomeIcon icon={faMoneyBillWave} /></InputGroup.Text>
                   <Form.Control
                     type="number"
-                    placeholder="Entrez le montant"
+                    placeholder={t('enterAmount')}
                     value={amountToSend}
                     onChange={(e) => setAmountToSend(parseFloat(e.target.value) || 0)}
                     required
@@ -137,7 +145,7 @@ function Facture() {
             </Col>
             <Col md={6}>
               <Form.Group controlId="formCurrency">
-                <Form.Label className="form-label">Devise *</Form.Label>
+                <Form.Label className="form-label">{t('currency')} *</Form.Label>
                 <Form.Control as="select" value={currency} readOnly required>
                   <option>{currency}</option>
                 </Form.Control>
@@ -146,15 +154,24 @@ function Facture() {
           </Row>
 
           <Form.Group controlId="formDetails">
-            <Form.Label className="form-label">Veuillez fournir plus de précisions *</Form.Label>
+            <Form.Label className="form-label">{t('moreDetails')} *</Form.Label>
             <InputGroup>
               <InputGroup.Text><FontAwesomeIcon icon={faInfoCircle} /></InputGroup.Text>
               <Form.Control as="textarea" rows={3} required />
             </InputGroup>
           </Form.Group>
 
+          {country && (
+            <div className="mt-3 mb-3">
+              <p>{t('destinationCountry')} : {receivingCountry || '—'}</p>
+              <p>{t('estimatedAmount')} : {formatCurrency(amountToReceive, country === 'Canada' ? 'XAF' : currency || 'CAD')}</p>
+              <p>{t('feePercent')} : {formatCurrency(fees, currency || 'CAD')}</p>
+              <p><strong>{t('totalToPay')} : {formatCurrency(totalToPay, currency || 'CAD')}</strong></p>
+            </div>
+          )}
+
           <Button className="button" type="submit">
-            Envoyer
+            {t('send')}
           </Button>
         </Form>
       </div>

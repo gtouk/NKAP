@@ -1,40 +1,46 @@
-import React, { createContext, useEffect, useState } from 'react';
+import React, { createContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
 
 export const AuthContext = createContext();
 
+const AUTH_KEYS = [
+  'token',
+  'refreshToken',
+  'userName',
+  'userFirstName',
+  'userLastName',
+  'role',
+  'id',
+  'status',
+  'email',
+  'isAuthenticated',
+  'jwtToken',
+];
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(
-    localStorage.getItem("isAuthenticated") === "true"
+    () => Boolean(localStorage.getItem('token'))
   );
   const navigate = useNavigate();
-  
 
-
-  // Vérifier l'authentification au chargement de l'application
-  useEffect(() => {
-    console.log("🔵 Auth State Updated: isAuthenticated =", isAuthenticated);
-  }, [isAuthenticated]);
-
-  // Fonction pour gérer la connexion
   const login = () => {
-    console.log("🟢 login() appelé !");
     setIsAuthenticated(true);
-    localStorage.setItem("isAuthenticated", "true");
+    localStorage.setItem('isAuthenticated', 'true');
   };
 
-  // Fonction pour gérer la déconnexion
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('role');
-    localStorage.removeItem('id');
-    console.log("🟢 logout() appelé !");
+  const logout = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      if (token) {
+        await api.post('/api/users/logout', { token });
+      }
+    } catch (error) {
+      console.error('Déconnexion distante ignorée', error);
+    }
+    AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
     setIsAuthenticated(false);
     navigate('/login');
-    localStorage.removeItem("isAuthenticated");
   };
 
   return (

@@ -14,7 +14,7 @@ import JoinUs from './components/JoinUs';
 import Layout from './components/Layout';
 import Login from './components/Login';
 import LogoutButton from './components/Logout';
-import PrivateRoute from './components/PrivateRoute';
+import PrivateRoute, { AdminRoute, StaffRoute } from './components/PrivateRoute';
 import Profile from './components/Profile';
 import Recipients from './components/Recipients';
 import ReferAFriend from './components/ReferAFriend';
@@ -22,6 +22,8 @@ import ResetPassword from './components/ResetPassword';
 import Signup from './components/SignUp';
 import TransactionHistory from './components/TransactionHistory';
 import Transfer from './components/Transfer';
+import TransferTrack from './components/TransferTrack';
+import Office from './components/Office';
 import { AuthProvider } from './contexts/AuthContext';
 
 
@@ -53,8 +55,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess}/>} />
-          <Route path="/mot-de-passe-oublie" component={ForgotPassword} />
-          <Route path="/reset-password/:token" component={ResetPassword} />
+          <Route path="/mot-de-passe-oublie" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           {/* <Route path="/add-admin" element={<AddAdmin />} /> */}
           
           
@@ -65,13 +67,21 @@ function App() {
             <Route path="/contact" element={<JoinUs />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/history" element={<TransactionHistory />} />
+            <Route path="/track/:reference" element={<TransferTrack />} />
             <Route path="/recipients" element={<Recipients />} />
             <Route path="/account" element={<Account />} />
             <Route path="/refer-a-friend" element={<ReferAFriend />} />
-            <Route path='/adminInterface' element={<AdminInterface/>}/>
-            <Route path='/createAdmin' element={<CreateAdmin/>}/>
-            <Route path='/createUser' element={<CreateUser/>}/>
-            <Route path='/getUsers' element={<GetUsers/>}/>
+          </Route>
+
+          <Route element={<StaffRoute />}>
+            <Route path="/office" element={<Office />} />
+          </Route>
+
+          <Route element={<AdminRoute />}>
+            <Route path="/adminInterface" element={<AdminInterface />} />
+            <Route path="/createAdmin" element={<CreateAdmin />} />
+            <Route path="/createUser" element={<CreateUser />} />
+            <Route path="/getUsers" element={<GetUsers />} />
           </Route>
 
           {/* Route pour l'inscription */}

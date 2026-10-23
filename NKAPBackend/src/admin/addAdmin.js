@@ -1,44 +1,35 @@
-const bcrypt = require('bcrypt');
-const mysql = require('mysql2');
+import 'dotenv/config';
+import bcrypt from 'bcrypt';
+import pool from '../config/db.js';
+import { ensureSchema } from '../config/schema.js';
 
-// Configurer la connexion à la base de données
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    // password: 'your_db_password',
-    database: 'nkaptransfer',
-});
+const [email, password, name = 'Admin NKAP'] = process.argv.slice(2);
 
-// Fonction pour ajouter un administrateur
-const addAdmin = async (name, phone, email, password) => {
-    try {
-        // Hachage du mot de passe avec bcrypt
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Insertion dans la base de données
-        db.query(
-            'INSERT INTO users (email, password, isAdmin) VALUES (?, ?, ?)',
-            [email, hashedPassword, 1],
-            (err, results) => {
-                if (err) {
-                    console.error('Erreur lors de l\'ajout de l\'admin :', err.message);
-                } else {
-                    console.log('Admin ajouté avec succès !');
-                }
-                db.end(); // Fermer la connexion à la base de données
-            }
-        );
-    } catch (error) {
-        console.error('Erreur :', error.message);
-    }
-};
-
-// Lire les arguments de la commande pour obtenir l'email et le mot de passe
-const args = process.argv.slice(2);
-if (args.length !== 2) {
-    console.log('Usage : node addAdmin.js <email> <mot_de_passe>');
-    process.exit(1);
+if (!email || !password) {
+  console.log('Usage : node src/admin/addAdmin.js <email> <mot_de_passe> [nom]');
+  process.exit(1);
 }
 
-const [name, phone, email, password] = args;
-addAdmin(name, phone, email, password);
+const parts = name.trim().split(/\s+/);
+const firstName = parts[0];
+const lastName = parts.slice(1).join(' ') || 'Admin';
+
+await ensureSchema(pool);
+const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+if (existing.length) {
+  console.error('Cet email existe déjà');
+  process.exit(1);
+}
+
+const hashedPassword = await bcrypt.hash(password, 10);
+await pool.query('INSERT INTO users SET ?', {
+  username: email.slice(0, 191),
+  firstName,
+  lastName,
+  email,
+  password: hashedPassword,
+  role: 'admin',
+  status: 'active',
+});
+console.log('Administrateur ajouté');
+await pool.end();

@@ -1,5 +1,6 @@
-import axios from 'axios';
+import api from '../../api';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Button, Col, Container, Form, Row } from 'react-bootstrap';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -7,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 
 const CreateUser = () => {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,7 +32,7 @@ const CreateUser = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!firstName || lastName || !email || !gender || !birthDate || !country || !street || !city || !postalCode || !password || !confirmPassword || !phone) {
+    if (!firstName || !lastName || !email || !gender || !birthDate || !country || !street || !city || !postalCode || !password || !confirmPassword || !phone) {
       setError('Tous les champs sont requis.');
       return;
     }
@@ -44,7 +46,7 @@ const CreateUser = () => {
     setError('');
 
     try {
-      await axios.post('http://localhost:3000/api/users/register', {
+      await api.post('/api/users/register', {
         firstName,
         lastName,
         email,
@@ -56,7 +58,7 @@ const CreateUser = () => {
         postalCode,
         phone,
         password,
-        passwordConfirm: confirmPassword, // Correspond à ton backend
+        confirmPassword,
       });
 
       //   const { token } = response.data;
@@ -68,15 +70,15 @@ const CreateUser = () => {
       navigate('/adminInterface'); // Redirige vers la page d'accueil
     } catch (err) {
       console.error('Erreur lors de la création de l\'utilisateur:', error);
-      setMessage('Une erreur est survenue lors de la création de l\'utilisateur.');
+      setMessage(t('userCreateError'));
       setShowAlert(true);
 
       if (err.response) {
         // Gestion des erreurs backend
-        const errorMessage = err.response.data?.message || 'Erreur lors de l\'inscription.';
+        const errorMessage = err.response.data?.message || t('signupError');
         setError(errorMessage);
       } else {
-        setError('Impossible de se connecter au serveur. Veuillez réessayer plus tard.');
+        setError(t('serverError'));
       }
     } finally {
       setLoading(false);
@@ -87,13 +89,13 @@ const CreateUser = () => {
     <Container className="mt-5">
       <Row className="justify-content-center">
         <Col md={6}>
-          <h2 className="display-4 heading">Entrez données utilisateur</h2>
+          <h2 className="display-4 heading">{t('enterUserData')}</h2>
           <Form onSubmit={handleSubmit}>
           <Form.Group controlId="formFirstName" className="form-group">
-                <Form.Label className="form-label">Nom</Form.Label>
+                <Form.Label className="form-label">{t('firstName')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre Prenom"
+                  placeholder={t('yourFirstName')}
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
@@ -101,10 +103,10 @@ const CreateUser = () => {
               </Form.Group>
 
               <Form.Group controlId="formLastName" className="form-group">
-                <Form.Label className="form-label">Nom</Form.Label>
+                <Form.Label className="form-label">{t('lastName')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre nom"
+                  placeholder={t('yourLastName')}
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   required
@@ -112,10 +114,10 @@ const CreateUser = () => {
               </Form.Group>
 
               <Form.Group controlId="formEmail" className="form-group">
-                <Form.Label className="form-label">Email</Form.Label>
+                <Form.Label className="form-label">{t('email')}</Form.Label>
                 <Form.Control
                   type="email"
-                  placeholder="Votre email"
+                  placeholder={t('yourEmail')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -124,7 +126,7 @@ const CreateUser = () => {
 
               {/* Country */}
               <Form.Group controlId="formCountry" className="form-group">
-                <Form.Label className="form-label">Date de naissance</Form.Label>
+                <Form.Label className="form-label">{t('country')}</Form.Label>
                 <Form.Control
                   type="text"
                   value={country}
@@ -135,23 +137,23 @@ const CreateUser = () => {
 
               {/* Sexe */}
               <Form.Group controlId="formGender" className="form-group">
-                <Form.Label className="form-label">Sexe</Form.Label>
+                <Form.Label className="form-label">{t('gender')}</Form.Label>
                 <Form.Control
                   as="select"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                   required
                 >
-                  <option value="">Sélectionnez votre sexe</option>
-                  <option value="male">Homme</option>
-                  <option value="female">Femme</option>
-                  <option value="other">Autre</option>
+                  <option value="">{t('chooseGender')}</option>
+                  <option value="male">{t('genderMale')}</option>
+                  <option value="female">{t('genderFemale')}</option>
+                  <option value="other">{t('genderOther')}</option>
                 </Form.Control>
               </Form.Group>
 
               {/* Date de naissance */}
               <Form.Group controlId="formBirthDate" className="form-group">
-                <Form.Label className="form-label">Date de naissance</Form.Label>
+                <Form.Label className="form-label">{t('birthDate')}</Form.Label>
                 <Form.Control
                   type="date"
                   value={birthDate}
@@ -162,10 +164,10 @@ const CreateUser = () => {
 
               {/* Adresse */}
               <Form.Group controlId="formStreet" className="form-group">
-                <Form.Label className="form-label">Rue</Form.Label>
+                <Form.Label className="form-label">{t('street')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre rue"
+                  placeholder={t('yourStreet')}
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   required
@@ -173,10 +175,10 @@ const CreateUser = () => {
               </Form.Group>
 
               <Form.Group controlId="formCity" className="form-group">
-                <Form.Label className="form-label">Ville</Form.Label>
+                <Form.Label className="form-label">{t('city')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre ville"
+                  placeholder={t('yourCity')}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   required
@@ -184,10 +186,10 @@ const CreateUser = () => {
               </Form.Group>
 
               <Form.Group controlId="formPostalCode" className="form-group">
-                <Form.Label className="form-label">Code postal</Form.Label>
+                <Form.Label className="form-label">{t('postalCode')}</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Votre code postal"
+                  placeholder={t('yourPostalCode')}
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
                   required
@@ -195,13 +197,13 @@ const CreateUser = () => {
               </Form.Group>
 
               <Form.Group controlId="formPhone" className="form-group">
-                <Form.Label className="form-label">Téléphone</Form.Label>
+                <Form.Label className="form-label">{t('phone')}</Form.Label>
                 <PhoneInput
                   country={'ca'} // Définit un pays par défaut
                   value={phone}
                   onChange={(value) => setPhone(value)}
                   inputClass="form-control" // Ajoute une classe Bootstrap si nécessaire
-                  placeholder="Votre numéro de téléphone"
+                  placeholder={t('yourPhone')}
                   enableSearch={true} // Permet de rechercher un pays
                   onlyCountries={['ca']} // Affiche uniquement les pays spécifiés
                 />
@@ -209,10 +211,10 @@ const CreateUser = () => {
 
 
               <Form.Group controlId="formPassword" className="form-group">
-                <Form.Label className="form-label">Mot de passe</Form.Label>
+                <Form.Label className="form-label">{t('password')}</Form.Label>
                 <Form.Control
                   type="password"
-                  placeholder="Votre mot de passe"
+                  placeholder={t('yourPassword')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -220,10 +222,10 @@ const CreateUser = () => {
               </Form.Group>
 
               <Form.Group controlId="formConfirmPassword" className="form-group">
-                <Form.Label className="form-label">Confirmer le mot de passe</Form.Label>
+                <Form.Label className="form-label">{t('confirmPassword')}</Form.Label>
                 <Form.Control
                   type="password"
-                  placeholder="Confirmez votre mot de passe"
+                  placeholder={t('confirmPassword')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -233,7 +235,7 @@ const CreateUser = () => {
 
 
             <Button variant="primary" type="submit">
-              Créer Utilisateur
+              {t('createUserButton')}
             </Button>
           </Form>
 

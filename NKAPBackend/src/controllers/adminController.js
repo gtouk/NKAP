@@ -1,125 +1,65 @@
-const db = require('../config/db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
-const nodemailer = require('nodemailer');
+import bcrypt from 'bcrypt';
+import db from '../config/db.js';
 
-// Function to add an administrator
+function splitName(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const firstName = parts[0] || 'Admin';
+  const lastName = parts.slice(1).join(' ') || 'NKAP';
+  return { firstName, lastName };
+}
 
-exports.createAdmin = async (req, res) => {
-    const { name, email, phone, password, passwordConfirm, role } = req.body;
+export const createAdmin = async (req, res, next) => {
+  const { name, email, phone, password, passwordConfirm, role } = req.body;
 
-    // Field validation
-    if (!name || !email || !phone || !password || !passwordConfirm) {
-        return res.status(400).json({ message: 'All fields are required.' });
-    }
+  if (!name || !email || !phone || !password || !passwordConfirm) {
+    return res.status(400).json({ message: 'Tous les champs sont requis' });
+  }
+  if (password !== passwordConfirm) {
+    return res.status(400).json({ message: 'Les mots de passe ne correspondent pas' });
+  }
+  if (!['support', 'compliance', 'finance', 'admin', 'superAdmin'].includes(role)) {
+    return res.status(400).json({ message: 'Rôle invalide' });
+  }
+  if (role !== 'admin' && req.user.role !== 'superAdmin') {
+    return res.status(403).json({ message: 'Seul un super administrateur peut créer ce rôle' });
+  }
+  if (role === 'superAdmin' && req.user.role !== 'superAdmin') {
+    return res.status(403).json({ message: 'Seul un super administrateur peut créer un super administrateur' });
+  }
 
-    if (password !== passwordConfirm) {
-        return res.status(400).json({ message: 'Passwords do not match.' });
-    }
-
-    try {
-        // Check if the user already exists
-        db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-            if (err) {
-                console.error('Error checking user:', err);
-                return res.status(500).json({ message: 'Internal server error.' });
-            }
-
-            if (results.length > 0) {
-                return res.status(409).json({ message: 'Email already in use.' });
-            }
-
-            // Limit the number of superAdmins to 2
-            if (role === 'superAdmin') {
-                db.query('SELECT COUNT(*) AS count FROM users WHERE role = ?', ['superAdmin'], async (err, results) => {
-                    if (err) {
-                        console.error('Error checking superAdmins:', err);
-                        return res.status(500).json({ message: 'Internal server error.' });
-                    }
-
-                    if (results[0].count >= 2) {
-                        return res.status(400).json({ message: 'Maximum number of superAdmins reached (2 max).' });
-                    }
-
-                    // Hash the password
-                    const hashedPassword = await bcrypt.hash(password, 8);
-
-                    // Insert the superAdmin
-                    db.query(
-                        'INSERT INTO users SET ?',
-                        { name, email, phone, password: hashedPassword, role },
-                        (err, result) => {
-                            if (err) {
-                                console.error('Error inserting into database:', err);
-                                return res.status(500).json({ message: 'Internal server error.' });
-                            }
-
-                            // Generate JWT token
-                            const token = jwt.sign(
-                                { userId: result.insertId, email, role },
-                                process.env.JWT_SECRET,
-                                { expiresIn: '1h' }
-                            );
-
-                            res.status(201).json({ message: 'SuperAdmin created successfully.', token });
-                        }
-                    );
-                });
-            } else {
-                // Default role to 'admin' if not specified
-                const userRole = role || 'admin';
-
-                // Hash the password
-                const hashedPassword = await bcrypt.hash(password, 8);
-
-                // Insert the user
-                db.query(
-                    'INSERT INTO users SET ?',
-                    { name, email, phone, password: hashedPassword, role: userRole },
-                    (err, result) => {
-                        if (err) {
-                            console.error('Error inserting into database:', err);
-                            return res.status(500).json({ message: 'Internal server error.' });
-                        }
-
-                        // Generate JWT token
-                        const token = jwt.sign(
-                            { userId: result.insertId, email, role: userRole },
-                            process.env.JWT_SECRET,
-                            { expiresIn: '1h' }
-                        );
-
-                        res.status(201).json({ message: 'Admin created successfully.', token });
-                    }
-                );
-            }
-        });
-    } catch (error) {
-        console.error('Error creating admin:', error);
-        res.status(500).json({ message: 'Internal server error.' });
-    }
-};
-
-
-exports.exportUsers = async (req, res) => {
   try {
-      db.query('SELECT * FROM users', (err, results) => {
-          if (err) {
-              console.error('Error retrieving users:', err);
-              return res.status(500).json({ message: 'Internal server error.' });
-          }
+    const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(409).json({ message: 'Email déjà utilisé' });
+    }
 
-          // Convert results to CSV (or other format)
-          const csv = results.map(user => Object.values(user).join(',')).join('\n');
+    if (role === 'superAdmin') {
+      const [countRows] = await db.query(
+        'SELECT COUNT(*) AS count FROM users WHERE role = ?',
+        ['superAdmin']
+      );
+      if (Number(countRows[0].count) >= 2) {
+        return res.status(400).json({ message: 'Nombre maximum de super administrateurs atteint (2)' });
+      }
+    }
 
-          res.header('Content-Type', 'text/csv');
-          res.attachment('users.csv');
-          res.send(csv);
-      });
+    const { firstName, lastName } = splitName(name);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.query('INSERT INTO users SET ?', {
+      username: email.slice(0, 191),
+      firstName,
+      lastName,
+      email,
+      phone,
+      password: hashedPassword,
+      role,
+      status: 'active',
+      country: 'Canada',
+    });
+
+    const label = role === 'superAdmin' ? 'Super administrateur créé' : 'Administrateur créé';
+    res.status(201).json({ message: label });
   } catch (error) {
-      console.error('Error exporting users:', error);
-      res.status(500).json({ message: 'Internal server error.' });
+    next(error);
   }
 };
-module.exports = exports;

@@ -1,5 +1,6 @@
-import axios from 'axios';
 import React, { useContext, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import api from '../api';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -24,9 +25,12 @@ const LoginContainer = styled.div`
 `;
 
 function Login({ onLoginSuccess }) {
+  const { t } = useTranslation();
   const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -34,8 +38,8 @@ function Login({ onLoginSuccess }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!email || !password) {
-      setError('Tous les champs sont requis.');
+    if ((!identifier && !mfaToken) || (!password && !mfaToken) || (mfaToken && !code)) {
+      setError(t('requiredFields'));
       return;
     }
 
@@ -43,54 +47,53 @@ function Login({ onLoginSuccess }) {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:3000/api/users/login', {
-        email,
-        password,
-      });
+      const response = mfaToken
+        ? await api.post('/api/users/mfa/verify', { mfaToken, code })
+        : await api.post('/api/users/login', { email: identifier, phone: identifier, password });
 
-      const { message, token, refreshToken, firstName, lastName, role, id, status } = response.data;
+      if (response.data.mfaRequired) {
+        setMfaToken(response.data.mfaToken);
+        setError('');
+        return;
+      }
 
+      const { token, refreshToken, firstName, lastName, role, id, status } = response.data;
 
-
-      // Stocker les tokens dans localStorage ou dans un state management sécurisé
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('userFirstName', firstName);
       localStorage.setItem('userLastName', lastName);
+      localStorage.setItem('userName', firstName);
       localStorage.setItem('role', role);
-      localStorage.setItem('email', email);
+      localStorage.setItem('email', identifier);
       localStorage.setItem('id', id);
       localStorage.setItem('status', status);
       login();
-      alert(message || 'Connexion réussie !');
-      onLoginSuccess(); // Mettre à jour l'état d'authentification si nécessaire
-      // navigate('/'); // Redirection vers la page d'accueil
+      onLoginSuccess();
+      const staff = ['support', 'compliance', 'finance', 'admin', 'superAdmin'];
       if (role === 'admin' || role === 'superAdmin') {
         navigate('/adminInterface');
-      } else if (role === 'user'){
-        navigate('/');
-      }else{
+      } else if (staff.includes(role)) {
+        navigate('/office');
+      } else {
         navigate('/');
       }
-
-      if (status === 'blocked') {
-        alert("Votre compte est bloqué. Veuillez contacter l'administrateur.");
-      }
-
     } catch (err) {
-      let errorMessage = "Erreur lors de la connexion.";
+      let errorMessage = t('loginError');
 
       if (err.response) {
         errorMessage = err.response.data?.message || errorMessage;
         if (err.response.status === 401) {
-          errorMessage = "Email ou mot de passe incorrect.";
+          errorMessage = t('wrongCredentials');
+        } else if (err.response.status === 403) {
+          errorMessage = err.response.data?.message || t('accountBlocked');
         } else if (err.response.status === 404) {
-          errorMessage = "Utilisateur non trouvé.";
+          errorMessage = t('userNotFound');
         } else if (err.response.status === 500) {
-          errorMessage = "Erreur interne du serveur.";
+          errorMessage = t('serverError');
         }
       } else if (err.request) {
-        errorMessage = "Aucune réponse du serveur.";
+        errorMessage = t('noServer');
       }
 
       setError(errorMessage);
@@ -103,43 +106,52 @@ function Login({ onLoginSuccess }) {
     <LoginContainer>
       <Container className="mt-5">
         <Row className="justify-content-center">
-          <Col md={6}>
-            <h2 className="display-4 heading">Connexion</h2>
+          <Col md={6} className="auth-card">
+            <h2 className="heading">{t('login')}</h2>
             <Form onSubmit={handleSubmit}>
               <Form.Group controlId="formEmail" className="form-group">
-                <Form.Label className="form-label">Email</Form.Label>
+                <Form.Label className="form-label">{t('emailOrPhone')}</Form.Label>
                 <Form.Control
-                  type="email"
-                  placeholder="Votre email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder={t('emailOrPhone')}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
+                  disabled={Boolean(mfaToken)}
                 />
               </Form.Group>
               <Form.Group controlId="formPassword" className="form-group">
-                <Form.Label className="form-label">Mot de passe</Form.Label>
+                <Form.Label className="form-label">{t('password')}</Form.Label>
                 <Form.Control
                   type="password"
-                  placeholder="Votre mot de passe"
+                  placeholder={t('yourPassword')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
+                  required={!mfaToken}
+                  disabled={Boolean(mfaToken)}
                 />
               </Form.Group>
+              {mfaToken && (
+                <Form.Group className="form-group">
+                  <Form.Label>{t('mfaCode')}</Form.Label>
+                  <p>{t('mfaHelp')}</p>
+                  <Form.Control value={code} onChange={(e) => setCode(e.target.value)} required />
+                </Form.Group>
+              )}
 
-              <Form.Text className="text-muted">
-                <a href="/mot-de-passe-oublie" style={{ textDecoration: 'none' }}>
-                  Mot de passe oublié ?
-                </a>
-              </Form.Text>
-              {error && <p className="text-danger">{error}</p>}
-              <Button type="submit" variant="primary" className="mt-3" disabled={loading}>
-                {loading ? 'Chargement...' : 'Se connecter'}
+              <div className="d-flex justify-content-end">
+                <Button variant="link" className="p-0" type="button" onClick={() => navigate('/mot-de-passe-oublie')}>
+                  {t('forgotPassword')}
+                </Button>
+              </div>
+              {error && <p className="text-danger mb-0">{error}</p>}
+              <Button type="submit" variant="primary" className="mt-3 w-100" disabled={loading}>
+                {loading ? t('loading') : t('signIn')}
               </Button>
             </Form>
             <div className="mt-3">
               <Button variant="link" onClick={() => navigate('/signup')}>
-                Pas encore de compte ? Inscrivez-vous
+                {t('noAccount')}
               </Button>
             </div>
           </Col>

@@ -1,8 +1,10 @@
-import axios from 'axios';
+import api from '../api';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Col, Container, Modal, Row, Table } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import TransactionChart from './TransactionChart';
 
@@ -68,6 +70,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const TransactionHistory = () => {
+  const { t, i18n } = useTranslation();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -82,13 +85,11 @@ const TransactionHistory = () => {
           throw new Error('No token found, please log in.');
         }
 
-        const response = await axios.get('http://localhost:3000/api/transactions/get-transactions', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get('/api/transactions/get-transactions');
 
         setTransactions(response.data);
       } catch (error) {
-        setError(error.message || 'Error fetching transactions');
+        setError(error.response?.data?.message || error.message || 'Impossible de charger les transactions');
       } finally {
         setLoading(false);
       }
@@ -112,7 +113,7 @@ const TransactionHistory = () => {
       const doc = new jsPDF();
   
       // Configuration des polices et couleurs
-      doc.setFont('Helvetica', 'normal'); // Helvetica pour un look plus propre qu'Arial
+      doc.setFont('helvetica', 'normal'); // Helvetica pour un look plus propre qu'Arial
       const primaryColor = '#16A085'; // Vert émeraude de votre thème
       const textColor = '#2C3E50'; // Bleu foncé pour le texte
   
@@ -121,19 +122,17 @@ const TransactionHistory = () => {
       doc.rect(0, 0, 210, 40, 'F'); // Rectangle vert en haut (largeur A4 = 210mm)
       doc.setTextColor('#FFFFFF');
       doc.setFontSize(20);
-      doc.setFont('Helvetica', 'bold');
-      doc.text('Facture de Transaction', 20, 25);
+      doc.setFont('helvetica', 'bold');
+      doc.text(t('invoiceTitle'), 20, 25);
   
-      // Sous-titre
       doc.setTextColor(textColor);
       doc.setFontSize(12);
-      doc.setFont('Helvetica', 'normal');
-      doc.text(`Générée le ${new Date().toLocaleDateString()}`, 20, 35);
+      doc.setFont('helvetica', 'normal');
+      doc.text(t('generatedOn', { date: new Date().toLocaleDateString(i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA') }), 20, 35);
   
-      // Section Détails de la Transaction
       doc.setFontSize(16);
-      doc.setFont('Helvetica', 'bold');
-      doc.text('Détails', 20, 50);
+      doc.setFont('helvetica', 'bold');
+      doc.text(t('details'), 20, 50);
       doc.setLineWidth(0.5);
       doc.setDrawColor(primaryColor);
       doc.line(20, 52, 80, 52); // Ligne verte sous "Détails"
@@ -141,24 +140,24 @@ const TransactionHistory = () => {
       // Informations alignées dans un tableau stylisé
       const startY = 60;
       doc.setFontSize(12);
-      doc.setFont('Helvetica', 'normal');
+      doc.setFont('helvetica', 'normal');
       const details = [
-        ['Destinataire', selectedTransaction.recipient_name],
-        ['Montant', `${selectedTransaction.amount} $`],
-        ['Date', new Date(selectedTransaction.transaction_date).toLocaleDateString()],
-        ['Méthode', selectedTransaction.method],
-        ['État', selectedTransaction.transactionState],
-        ['Numéro de compte', selectedTransaction.accountNumber],
-        ['Adresse', `${selectedTransaction.recipientAddress}, ${selectedTransaction.recipientTown}`]
+        [t('recipient'), selectedTransaction.recipient_name],
+        [t('amount'), `${selectedTransaction.amount} $`],
+        [t('date'), new Date(selectedTransaction.transaction_date).toLocaleDateString(i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA')],
+        [t('method'), selectedTransaction.method],
+        [t('state'), selectedTransaction.transactionState],
+        [t('accountNumber'), selectedTransaction.accountNumber],
+        [t('address'), `${selectedTransaction.recipientAddress}, ${selectedTransaction.recipientTown}`]
       ];
   
       details.forEach((item, index) => {
         const y = startY + index * 10;
         doc.setTextColor(primaryColor);
-        doc.setFont('Helvetica', 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(`${item[0]} :`, 20, y); // Label en vert
         doc.setTextColor(textColor);
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('helvetica', 'normal');
         doc.text(item[1], 70, y); // Valeur en bleu foncé
       });
   
@@ -170,7 +169,7 @@ const TransactionHistory = () => {
       // Pied de page
       doc.setFontSize(10);
       doc.setTextColor('#999');
-      doc.text('TransferFast - Votre solution de transfert sécurisée', 20, 280);
+      doc.text('NKAP Transfert', 20, 280);
       doc.text(`ID Transaction: ${selectedTransaction.transaction_id}`, 150, 280);
   
       // Téléchargement
@@ -179,7 +178,7 @@ const TransactionHistory = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>{t('loading')}</div>;
   }
 
   if (error) {
@@ -190,30 +189,41 @@ const TransactionHistory = () => {
     <Container className="mt-5">
       <Row>
         <Col>
-          <h2>Historique des Transactions</h2>
+          <h2>{t('historyTitle')}</h2>
           <Table striped bordered hover>
             <thead>
               <tr>
-                <th>Destinataire</th>
-                <th>Montant</th>
-                <th>Date</th>
-                <th>Methode</th>
-                <th>transactionState</th>
-                <th>Action</th>
+                <th>{t('reference')}</th>
+                <th>{t('recipient')}</th>
+                <th>{t('amount')}</th>
+                <th>{t('date')}</th>
+                <th>{t('method')}</th>
+                <th>{t('state')}</th>
+                <th>{t('action')}</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.map((transaction, index) => (
-                <tr key={index}>
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan="7">{t('noTransactions')}</td>
+                </tr>
+              ) : transactions.map((transaction) => (
+                <tr key={transaction.transaction_id}>
+                  <td>{transaction.reference || transaction.transaction_id}</td>
                   <td>{transaction.recipient_name}</td>
                   <td>{transaction.amount} $</td>
-                  <td>{new Date(transaction.transaction_date).toLocaleDateString()}</td>
+                  <td>{new Date(transaction.transaction_date).toLocaleDateString(i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA')}</td>
                   <td>{transaction.method}</td>
                   <td>{transaction.transactionState}</td>
                   <td>
                     <Button variant='primary' size='sm' onClick={() => handleShowInvoice(transaction)}>
-                      Facture
+                      {t('invoice')}
                     </Button>
+                    {transaction.reference && (
+                      <Button as={Link} to={`/track/${transaction.reference}`} variant="outline-primary" size="sm" className="ms-2">
+                        {t('track')}
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -226,27 +236,27 @@ const TransactionHistory = () => {
       {/* Modale pour afficher la facture */}
       <StyledModal show={showModal} onHide={handleCloseModal} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Facture de la transaction</Modal.Title>
+        <Modal.Title>{t('invoiceTitle')}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {selectedTransaction && (
           <>
-            <p><strong>Destinataire :</strong> {selectedTransaction.recipient_name}</p>
-            <p><strong>Montant :</strong> {selectedTransaction.amount} $</p>
-            <p><strong>Date :</strong> {new Date(selectedTransaction.transaction_date).toLocaleDateString()}</p>
-            <p><strong>Méthode :</strong> {selectedTransaction.method}</p>
-            <p><strong>État :</strong> {selectedTransaction.transactionState}</p>
-            <p><strong>Numéro de compte :</strong> {selectedTransaction.accountNumber}</p>
-            <p><strong>Adresse</strong> {selectedTransaction.recipientAddress}, {selectedTransaction.recipientTown}</p>
+            <p><strong>{t('recipient')} :</strong> {selectedTransaction.recipient_name}</p>
+            <p><strong>{t('amount')} :</strong> {selectedTransaction.amount} $</p>
+            <p><strong>{t('date')} :</strong> {new Date(selectedTransaction.transaction_date).toLocaleDateString(i18n.language.startsWith('en') ? 'en-CA' : 'fr-CA')}</p>
+            <p><strong>{t('method')} :</strong> {selectedTransaction.method}</p>
+            <p><strong>{t('state')} :</strong> {selectedTransaction.transactionState}</p>
+            <p><strong>{t('accountNumber')} :</strong> {selectedTransaction.accountNumber}</p>
+            <p><strong>{t('address')}</strong> {selectedTransaction.recipientAddress}, {selectedTransaction.recipientTown}</p>
           </>
         )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={handleCloseModal}>
-          Fermer
+          {t('close')}
         </Button>
         <Button variant="primary" onClick={downloadInvoice}>
-            Télécharger la facture en PDF
+            {t('downloadPdf')}
           </Button>
       </Modal.Footer>
     </StyledModal>

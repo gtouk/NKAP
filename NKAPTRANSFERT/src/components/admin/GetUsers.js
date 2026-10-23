@@ -1,11 +1,13 @@
-import axios from 'axios';
+import api from '../../api';
 // import { Modal } from 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, Form, Modal, Table } from 'react-bootstrap';
 
 
 const GetUsers = () => {
+    const { t } = useTranslation();
     const [users, setUsers] = useState([]);
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -22,11 +24,7 @@ const GetUsers = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/api/users', {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
+                const response = await api.get('/api/users');
 
                 if (Array.isArray(response.data)) {
                     setUsers(response.data);
@@ -46,12 +44,13 @@ const GetUsers = () => {
 
     useEffect(() => {
         setFilteredUsers(
-            users.filter((user) => 
-                (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchQuery.toLowerCase())) &&
-                (roleFilter.length === 0 || roleFilter.includes(user.role)) &&
-                (statusFilter.length === 0 || statusFilter.includes(user.status))
-            )
+            users.filter((user) => {
+                const displayName = (user.name || `${user.firstName || ''} ${user.lastName || ''}`).trim();
+                return (displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (user.email || '').toLowerCase().includes(searchQuery.toLowerCase())) &&
+                    (roleFilter.length === 0 || roleFilter.includes(user.role)) &&
+                    (statusFilter.length === 0 || statusFilter.includes(user.status));
+            })
         );
     }, [searchQuery, roleFilter, statusFilter, users]);
 
@@ -98,11 +97,7 @@ const GetUsers = () => {
             setShowModal(false); // Ferme le modal après l'action
             setUserIdToBlock(null);
 
-        axios.put(`http://localhost:3000/api/users/block-user/${userId}`,{},  {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            }
-        })
+        api.put(`/api/users/block-user/${userId}`, {})
         .then((res) => {
             alert(res.data.message);
             window.location.reload(); // Recharge pour mettre à jour la liste
@@ -120,11 +115,7 @@ const GetUsers = () => {
 
         setShowModal(false); // Ferme le modal après l'action
         setUserIdToUnblock(null);
-        axios.put(`http://localhost:3000/api/users/unblock-user/${userId}`, {}, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            }
-        })
+        api.put(`/api/users/unblock-user/${userId}`, {})
         .then((res) => {
             alert(res.data.message);
             window.location.reload(); // Recharge pour mettre à jour la liste
@@ -134,20 +125,17 @@ const GetUsers = () => {
         });
     };
 
-    const userBlockStatus = (status) => {
-        if (status === 'active') {
+    const confirmStatusChange = () => {
+        if (userIdToUnblock) {
             handleUnblockUser(userIdToUnblock);
-        } else {
+        } else if (userIdToBlock) {
             handleBlockUser(userIdToBlock);
         }
     };
 
     const handleExport = () => {
-        axios.get(`http://localhost:3000/api/users/export-users?format=${exportFormat}`, { 
+        api.get(`/api/users/export-users?format=${exportFormat}`, { 
             responseType: 'blob',
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
          })
         .then((response) => {
             let filename = 'users';
@@ -184,33 +172,31 @@ const GetUsers = () => {
             {/* Modal de confirmation */}
             <Modal show={showModal} onHide={handleCloseModal}>
     <Modal.Header closeButton>
-        <Modal.Title>Confirmation</Modal.Title>
+        <Modal.Title>{t('confirm')}</Modal.Title>
     </Modal.Header>
 
     <Modal.Body>
-        {/* Conditionner le texte selon si l'utilisateur est bloqué ou non */}
         <p>
-            {userIdToUnblock 
-                ? "Êtes-vous sûr de vouloir débloquer cet utilisateur ?" 
-                : "Êtes-vous sûr de vouloir bloquer cet utilisateur ?"}
+            {userIdToUnblock
+                ? t('confirmUnblock')
+                : t('confirmBlock')}
         </p>
     </Modal.Body>
 
     <Modal.Footer>
         <Button variant="secondary" onClick={handleCloseModal}>
-            Annuler
+            {t('cancel')}
         </Button>
-        <Button variant="primary" onClick={userBlockStatus}>
-            Confirmer
+        <Button variant="primary" onClick={confirmStatusChange}>
+            {t('confirm')}
         </Button>
     </Modal.Footer>
 </Modal>
 
-            <h2>Liste des utilisateurs</h2>
+            <h2>{t('userList')}</h2>
 
-            {/* Format d'exportation */}
             <Form.Group controlId="exportFormat" className="mb-3">
-                <Form.Label>Sélectionnez le format d'exportation</Form.Label>
+                <Form.Label>{t('exportFormat')}</Form.Label>
                 <Form.Control
                     as="select"
                     value={exportFormat}
@@ -222,7 +208,7 @@ const GetUsers = () => {
                 </Form.Control>
             </Form.Group>
             <Button variant="primary" onClick={handleExport}>
-                Exporter en {exportFormat.toUpperCase()}
+                {t('exportAs', { format: exportFormat.toUpperCase() })}
             </Button>
 
             {/* Saisie de la durée du blocage */}
@@ -237,34 +223,34 @@ const GetUsers = () => {
             </Form.Group> */}
 
             <Form.Group controlId="searchUsers" className="mb-3 d-flex align-items-center">
-                <Form.Label>Rechercher un utilisateur</Form.Label>
+                <Form.Label>{t('searchUser')}</Form.Label>
                 <Form.Control
                     type="text"
-                    placeholder="Rechercher par nom ou email"
+                    placeholder={t('searchByName')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Button variant="primary" className="ms-2">Rechercher</Button>
+                <Button variant="primary" className="ms-2">{t('search')}</Button>
             </Form.Group>
 
             <Form.Group controlId="roleFilter" className="mb-3">
-                <Form.Label>Filtrer par rôle :</Form.Label>
+                <Form.Label>{t('filterByRole')}</Form.Label>
                 <div>
                     <Form.Check 
                         type="checkbox" 
-                        label="Utilisateur" 
+                        label={t('roleUser')} 
                         value="user" 
                         onChange={handleRoleChange} 
                     />
                     <Form.Check 
                         type="checkbox" 
-                        label="Administrateur" 
+                        label={t('roleAdmin')} 
                         value="admin" 
                         onChange={handleRoleChange} 
                     />
                     <Form.Check 
                         type="checkbox" 
-                        label="Super Administrateur" 
+                        label={t('roleSuperAdmin')} 
                         value="superAdmin" 
                         onChange={handleRoleChange} 
                     />
@@ -272,17 +258,17 @@ const GetUsers = () => {
             </Form.Group>
 
             <Form.Group controlId="statusFilter" className="mb-3">
-                <Form.Label>Filtrer par statut :</Form.Label>
+                <Form.Label>{t('filterByStatus')}</Form.Label>
                 <div>
                     <Form.Check 
                         type="checkbox" 
-                        label="Actif" 
+                        label={t('statusActive')} 
                         value="active" 
                         onChange={handleStatusChange} 
                     />
                     <Form.Check 
                         type="checkbox" 
-                        label="Bloqué" 
+                        label={t('statusBlocked')} 
                         value="blocked" 
                         onChange={handleStatusChange} 
                     />
@@ -290,7 +276,7 @@ const GetUsers = () => {
             </Form.Group>
 
             {loading ? (
-                <p>Chargement...</p>
+                <p>{t('loading')}</p>
             ) : message ? (
                 <p>{message}</p>
             ) : (
@@ -298,13 +284,13 @@ const GetUsers = () => {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Nom</th>
-                            <th>Email</th>
-                            <th>Téléphone</th>
-                            <th>Date de création</th>
-                            <th>Rôle</th>
-                            <th>Statut</th>
-                            <th>Actions</th>
+                            <th>{t('nameRequired')}</th>
+                            <th>{t('email')}</th>
+                            <th>{t('phone')}</th>
+                            <th>{t('createdAt')}</th>
+                            <th>{t('role')}</th>
+                            <th>{t('state')}</th>
+                            <th>{t('actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -312,7 +298,7 @@ const GetUsers = () => {
                             filteredUsers.map((user, index) => (
                                 <tr key={index}>
                                     <td>{user.id}</td>
-                                    <td>{user.name}</td>
+                                    <td>{user.name || `${user.firstName || ''} ${user.lastName || ''}`}</td>
                                     <td>{user.email}</td>
                                     <td>{user.phone}</td>
                                     <td>{user.created_at}</td>
@@ -324,14 +310,14 @@ const GetUsers = () => {
                                                 variant="warning" 
                                                 onClick={() => handleShowModal(user.id, user.status)}
                                             >
-                                                Bloquer
+                                                {t('block')}
                                             </Button>
                                         ) : (
                                             <Button 
                                                 variant="success" 
                                                 onClick={() => handleShowModal(user.id, user.status)}
                                             >
-                                                Débloquer
+                                                {t('unblock')}
                                             </Button>
                                         )}
                                     </td>
@@ -339,7 +325,7 @@ const GetUsers = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="8">Aucun utilisateur trouvé</td>
+                                <td colSpan="8">{t('noUsers')}</td>
                             </tr>
                         )}
                     </tbody>

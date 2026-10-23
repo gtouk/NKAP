@@ -2,8 +2,11 @@
   "name": "nkapbackend",
   "version": "1.0.0",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "test": "jest"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "test": "node --test src/tests/flow.test.js"
   },
   "author": "Gilly",
   "license": "ISC",
@@ -14,7 +17,7 @@
     "body-parser": "^1.20.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "crypto": "^1.0.1",
+    "dotenv": "^16.6.1",
     "csurf": "^1.2.2",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
@@ -32,7 +35,6 @@
     "twilio": "^5.4.5"
   },
   "devDependencies": {
-    "dotenv": "^16.4.7",
     "jest": "^29.7.0",
     "nodemon": "^3.1.9",
     "supertest": "^7.0.0"

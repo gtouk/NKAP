@@ -1,136 +1,159 @@
-const db = require('../config/db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
-// const User = require('../models/User');
-const nodemailer = require('nodemailer');
+import db from '../config/db.js';
+import { sendMailMessage } from '../utils/mailer.js';
+import { openTransfer } from '../services/transferService.js';
+import { sendError } from '../utils/httpError.js';
 
+function toNumber(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : NaN;
+}
 
-
-const transporter = nodemailer.createTransport({
-  service: 'Gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-exports.sendEmail = async (req, res) => {
-  const { subject, message } = req.body;
-  // const { subject, message } = req.body;
-  const userEmail = req.user.email; // Récupérer l'email de l'utilisateur à partir du token
-  const name = req.user.name; // Récupérer le nom de l'utilisateur à partir du token
-
-  if (!userEmail) {
-    return res.status(400).send('Email non fourni');
+export const createTransaction = async (req, res, next) => {
+  try {
+    const transfer = await openTransfer({
+      user: req.user,
+      body: req.body,
+      idempotencyKey: req.get('Idempotency-Key') || req.body.idempotencyKey,
+    });
+    res.status(201).json({
+      message: 'Transaction enregistrée',
+      ...transfer,
+    });
+  } catch (error) {
+    sendError(res, error, next);
   }
+};
 
-  if (!subject || !message) {
-    return res.status(400).send('Veuillez fournir un sujet et un message');
+export const payBill = async (req, res, next) => {
+  const { name, phone, email, country, amountToSend, currency, details } = req.body;
+  const amount = toNumber(amountToSend);
+  if (!name || !amount || amount <= 0) {
+    return res.status(400).json({ message: 'Le nom et un montant valide sont requis' });
   }
-
-  // const subject = "Bienvenue sur Nkap Transfer";
-  // const message = `Bonjour ${req.user.name || 'utilisateur'},\n\nMerci de vous connecter sur notre plateforme.\n\nCordialement, l'équipe Nkap Transfer`;
-
-
 
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: userEmail, // Utilisez l'email récupéré à partir du token
+    const [result] = await db.query('INSERT INTO transactions SET ?', {
+      user_id: req.user.id,
+      amount,
+      type: 'bill',
+      status: 'pending',
+      transactionState: 'pending',
+      recipient_name: name,
+      method: 'facture',
+      accountNumber: phone || null,
+      reasonOfSending: details || email || null,
+      receiving_country: country || null,
+      currency_sent: currency || null,
+      transaction_date: new Date(),
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Demande de paiement enregistrée',
+      id: result.insertId,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTransactions = async (req, res, next) => {
+  try {
+    const [results] = await db.query(
+      `SELECT t.id AS transaction_id, t.reference, t.amount, t.amount_received, t.fee, t.fx_rate,
+              t.method, t.payment_status, t.payout_status, t.compliance_status, t.eta,
+              COALESCE(t.transactionState, t.status) AS transactionState,
+              COALESCE(t.transaction_date, t.created_at) AS transaction_date,
+              t.accountNumber, t.recipientTown, t.recipientAddress, t.recipient_name,
+              t.sending_country, t.receiving_country, t.currency_sent, t.currency_received,
+              t.reasonOfSending, t.type,
+              CONCAT(u.firstName, ' ', u.lastName) AS user_name
+       FROM transactions t
+       JOIN users u ON t.user_id = u.id
+       WHERE t.user_id = ?
+       ORDER BY COALESCE(t.transaction_date, t.created_at) DESC`,
+      [req.user.id]
+    );
+    res.json(results);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecipients = async (req, res, next) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT recipient_name, recipientTown, recipientAddress, accountNumber, method,
+              COALESCE(transaction_date, created_at) AS last_used
+       FROM transactions
+       WHERE user_id = ? AND recipient_name IS NOT NULL AND type = 'transfer'
+       ORDER BY COALESCE(transaction_date, created_at) DESC`,
+      [req.user.id]
+    );
+
+    const seen = new Set();
+    const recipients = [];
+    for (const row of rows) {
+      const key = `${row.recipient_name}|${row.accountNumber || ''}|${row.method || ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      recipients.push(row);
+    }
+    res.json(recipients);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendEmail = async (req, res, next) => {
+  const { subject, message } = req.body;
+  if (!subject || !message) {
+    return res.status(400).json({ message: 'Sujet et message requis' });
+  }
+  if (!req.user.email) {
+    return res.status(400).json({ message: 'Email du compte introuvable' });
+  }
+
+  try {
+    const sent = await sendMailMessage({
+      to: req.user.email,
       subject,
       text: message,
     });
-
-    // const info = await transporter.sendMail(mailOptions);
-    // console.log('Email sent : %s', info.messageId);
-    res.status(200).send('Email envoyé avec succès');
-  } catch (error) {
-    console.error('Erreur lors de l\'envoi de l\'email:', error.message);
-    res.status(500).send(`Erreur lors de l\'envoi de l\'email: ${error.message}`);
-  }
-}
-
-exports.transactions = async (req, res) => {
-  const { userId, amount, recipientName, method, accountNumber,recipientTown, recipientAddress, reasonOfSending} = req.body;  // L'ID de l'utilisateur est extrait du token
-
-  // Vérification des champs obligatoires
-  if (!userId || !amount || !recipientName || !method || !accountNumber || !recipientTown || !recipientAddress || !reasonOfSending) {
-    return res.status(400).json({ message: 'Tous les champs sont obligatoires' });
-  }
-  try {
-    // Requête SQL pour insérer la transaction dans la base de données
-    db.query(
-      'INSERT INTO transactions SET ?', { user_id: userId, amount: amount, recipient_name: recipientName, method: method, recipientTown: recipientTown, recipientAddress: recipientAddress, reasonOfSending: reasonOfSending, accountNumber: accountNumber},
-      (error, results) => {
-        if (error) {
-          console.error('Erreur lors de la transaction:', error);
-          return res.status(500).json({ message: 'Erreur lors de la transaction' });
-        } else {
-          console.log('Transaction effectuée avec succès');
-        }
-
-      });
-
-    return res.json({ message: 'Transaction effectuée avec succès' });
-  } catch (error) {
-    console.error('Erreur lors de la transaction:', error);
-    return res.status(500).json({ message: 'Erreur lors de la transaction' });
-
-  }
-}
-
-exports.getTransactions = async (req, res) => {
-  const userId = req.user.id;
-
-  const query = `
-        SELECT t.amount, t.method, t.transactionState, t.transaction_date, t.accountNumber, t.recipientTown, t.recipientAddress, t.recipient_name, u.firstName AS user_name
-        FROM transactions t
-        JOIN users u ON t.user_id = u.id
-        WHERE t.user_id = ? 
-        ORDER BY t.transaction_date DESC
-      `;
-
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error('Erreur lors de la récupération des transactions :', err);
-      return res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
-
-    if (results.length === 0) {
-      return res.status(404).json({ message: 'Aucune transaction trouvée' });
-    }
-
-    results.forEach(transaction => {
-      transaction.transaction_date = new Date(transaction.transaction_date).toISOString();
+    res.status(200).json({
+      message: sent
+        ? 'Email envoyé'
+        : 'Transaction enregistrée. Email non envoyé : messagerie non configurée.',
+      sent,
     });
-    res.json(results);
-  });
-}
+  } catch (error) {
+    console.error('Erreur email:', error.message);
+    res.status(200).json({
+      message: 'Transaction enregistrée. L\'email de confirmation n\'a pas pu être envoyé.',
+      sent: false,
+    });
+  }
+};
 
-exports.sendMail = async (req, res) => {
-  const { firstName, lastName, email, subject, message } = req.body;
+export const sendMail = async (req, res, next) => {
+  const name = req.body.name || `${req.body.firstName || ''} ${req.body.lastName || ''}`.trim();
+  const { email, subject, message } = req.body;
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ success: false, message: 'Tous les champs sont requis' });
+  }
 
-  const mailOptions = {
-    from: email, // Expéditeur (e-mail de l'utilisateur)
-    to: process.env.EMAIL_USER, // Destinataire (e-mail de l'entreprise)
-    subject: `Nouveau message de ${firstName}: ${subject}`,
-    text: `
-      Nom: ${firstName} ${lastName}
-      Email: ${email}
-      Objet: ${subject}
-      Message: ${message}
-    `,
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error('Erreur lors de l\'envoi de l\'e-mail:', error);
-      return res.status(500).json({ success: false, message: 'Erreur lors de l\'envoi de l\'e-mail' });
+  try {
+    await db.query('INSERT INTO messages SET ?', { name, email, subject, message });
+    const inbox = process.env.EMAIL_USER;
+    if (inbox) {
+      await sendMailMessage({
+        to: inbox,
+        subject: `Contact NKAP — ${subject}`,
+        text: `Nom: ${name}\nEmail: ${email}\n\n${message}`,
+        from: process.env.EMAIL_USER,
+      });
     }
-    console.log('E-mail envoyé:', info.response);
-    res.status(200).json({ success: true, message: 'E-mail envoyé avec succès' });
-  });
-}
-
-module.exports = exports;
+    res.status(200).json({ success: true, message: 'Message envoyé' });
+  } catch (error) {
+    next(error);
+  }
+};

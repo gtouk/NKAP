@@ -16,4 +16,4 @@ node_modules/
 
 # Build outputs (si applicable)
 build/
-dist/
+uploads/
